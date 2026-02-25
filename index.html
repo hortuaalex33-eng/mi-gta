@@ -12,12 +12,31 @@ body {
   background: #111;
 }
 
-/* Canvas */
+/* CANVAS */
 canvas {
   display: block;
 }
 
-/* JOYSTICK PRO */
+/* MENU */
+#menu {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: black;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+#menu button {
+  padding: 20px;
+  font-size: 20px;
+}
+
+/* JOYSTICK */
 #joystickBase {
   position: absolute;
   bottom: 40px;
@@ -37,28 +56,19 @@ canvas {
   left: 35px;
   top: 35px;
 }
-
-/* BOTÓN CAMBIAR MODO */
-#modoBtn {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  padding: 15px;
-  background: red;
-  color: white;
-  font-weight: bold;
-  border-radius: 10px;
-}
 </style>
 </head>
 
 <body>
 
+<div id="menu">
+  <h1>MI GTA PRO 😈</h1>
+  <button onclick="startGame()">JUGAR</button>
+</div>
+
 <div id="joystickBase">
   <div id="joystick"></div>
 </div>
-
-<div id="modoBtn">Modo GTA</div>
 
 <canvas id="game"></canvas>
 
@@ -69,25 +79,49 @@ const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-// PLAYER
+// ====== ESTADO ======
+let gameStarted = false;
+
+// ====== PLAYER ======
 let player = {
-  x: 200,
-  y: 200,
+  x: 500,
+  y: 500,
   size: 30,
-  speed: 3
+  speed: 2.5,
+  inCar: false
 };
 
-// NPCS
+// ====== VEHÍCULO ======
+let car = {
+  x: 700,
+  y: 500,
+  width: 60,
+  height: 30,
+  speed: 5
+};
+
+// ====== NPCs ======
 let npcs = [];
-for (let i = 0; i < 5; i++) {
+for (let i = 0; i < 10; i++) {
   npcs.push({
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
+    x: Math.random() * 3000,
+    y: Math.random() * 3000,
     size: 25
   });
 }
 
-// JOYSTICK
+// ====== CIUDAD GRANDE ======
+let buildings = [];
+for (let i = 0; i < 50; i++) {
+  buildings.push({
+    x: Math.random() * 3000,
+    y: Math.random() * 3000,
+    w: 80 + Math.random() * 80,
+    h: 80 + Math.random() * 80
+  });
+}
+
+// ====== JOYSTICK ======
 let joystick = document.getElementById("joystick");
 let base = document.getElementById("joystickBase");
 
@@ -95,9 +129,7 @@ let dragging = false;
 let inputX = 0;
 let inputY = 0;
 
-base.addEventListener("touchstart", (e) => {
-  dragging = true;
-});
+base.addEventListener("touchstart", () => dragging = true);
 
 base.addEventListener("touchmove", (e) => {
   if (!dragging) return;
@@ -109,4 +141,131 @@ base.addEventListener("touchmove", (e) => {
   let y = touch.clientY - rect.top - 70;
 
   let dist = Math.sqrt(x*x + y*y);
-  let max =
+  let max = 50;
+
+  if (dist > max) {
+    x = (x / dist) * max;
+    y = (y / dist) * max;
+  }
+
+  joystick.style.left = (x + 35) + "px";
+  joystick.style.top = (y + 35) + "px";
+
+  inputX = x / max;
+  inputY = y / max;
+});
+
+base.addEventListener("touchend", () => {
+  dragging = false;
+  joystick.style.left = "35px";
+  joystick.style.top = "35px";
+  inputX = 0;
+  inputY = 0;
+});
+
+// ====== ENTRAR AL CARRO ======
+window.addEventListener("touchstart", () => {
+  let dx = player.x - car.x;
+  let dy = player.y - car.y;
+  let dist = Math.sqrt(dx*dx + dy*dy);
+
+  if (dist < 80) {
+    player.inCar = !player.inCar;
+  }
+});
+
+// ====== CÁMARA ======
+let camX = 0;
+let camY = 0;
+
+// ====== INICIO ======
+function startGame() {
+  document.getElementById("menu").style.display = "none";
+  gameStarted = true;
+}
+
+// ====== UPDATE ======
+function update() {
+
+  let speedMultiplier = Math.sqrt(inputX*inputX + inputY*inputY) > 0.7 ? 2 : 1;
+
+  if (player.inCar) {
+    car.x += inputX * car.speed * speedMultiplier;
+    car.y += inputY * car.speed * speedMultiplier;
+
+    player.x = car.x;
+    player.y = car.y;
+  } else {
+    player.x += inputX * player.speed * speedMultiplier;
+    player.y += inputY * player.speed * speedMultiplier;
+  }
+
+  // NPCs
+  npcs.forEach(npc => {
+    npc.x += (Math.random() - 0.5) * 2;
+    npc.y += (Math.random() - 0.5) * 2;
+  });
+
+  // Cámara sigue al jugador
+  camX = player.x - canvas.width / 2;
+  camY = player.y - canvas.height / 2;
+}
+
+// ====== DRAW ======
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  ctx.save();
+  ctx.translate(-camX, -camY);
+
+  // CALLES (GRID GRANDE)
+  ctx.strokeStyle = "#222";
+  for (let i = 0; i < 3000; i += 100) {
+    ctx.beginPath();
+    ctx.moveTo(i, 0);
+    ctx.lineTo(i, 3000);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0, i);
+    ctx.lineTo(3000, i);
+    ctx.stroke();
+  }
+
+  // EDIFICIOS
+  ctx.fillStyle = "#555";
+  buildings.forEach(b => {
+    ctx.fillRect(b.x, b.y, b.w, b.h);
+  });
+
+  // CARRO
+  ctx.fillStyle = "yellow";
+  ctx.fillRect(car.x, car.y, car.width, car.height);
+
+  // PLAYER
+  ctx.fillStyle = "cyan";
+  ctx.fillRect(player.x, player.y, player.size, player.size);
+
+  // NPCs
+  ctx.fillStyle = "red";
+  npcs.forEach(npc => {
+    ctx.fillRect(npc.x, npc.y, npc.size, npc.size);
+  });
+
+  ctx.restore();
+}
+
+// ====== LOOP ======
+function gameLoop() {
+  if (gameStarted) {
+    update();
+    draw();
+  }
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+
+</body>
+</html>
