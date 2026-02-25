@@ -1,167 +1,112 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Mini GTA PRO</title>
+<title>MI GTA PRO</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
-body { margin:0; overflow:hidden; background:black; }
-
-#controls {
-  position: fixed;
-  bottom: 20px;
-  left: 20px;
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #111;
 }
 
-button {
-  width: 80px;
-  height: 80px;
-  font-size: 25px;
-  margin: 8px;
-  border-radius: 15px;
-  background: rgba(0,0,0,0.6);
-  color: white;
-  border: none;
+/* Canvas */
+canvas {
+  display: block;
 }
 
-#shoot {
-  position: fixed;
+/* JOYSTICK PRO */
+#joystickBase {
+  position: absolute;
   bottom: 40px;
-  right: 40px;
+  left: 40px;
+  width: 140px;
+  height: 140px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 50%;
+}
+
+#joystick {
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  background: rgba(0,255,255,0.7);
+  border-radius: 50%;
+  left: 35px;
+  top: 35px;
+}
+
+/* BOTÓN CAMBIAR MODO */
+#modoBtn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  padding: 15px;
   background: red;
+  color: white;
+  font-weight: bold;
+  border-radius: 10px;
 }
 </style>
 </head>
 
 <body>
 
-<canvas id="game"></canvas>
-
-<div id="controls">
-  <button ontouchstart="keys.up=true" ontouchend="keys.up=false">⬆️</button><br>
-  <button ontouchstart="keys.left=true" ontouchend="keys.left=false">⬅️</button>
-  <button ontouchstart="keys.down=true" ontouchend="keys.down=false">⬇️</button>
-  <button ontouchstart="keys.right=true" ontouchend="keys.right=false">➡️</button>
+<div id="joystickBase">
+  <div id="joystick"></div>
 </div>
 
-<button id="shoot" ontouchstart="shoot()">💥</button>
+<div id="modoBtn">Modo GTA</div>
+
+<canvas id="game"></canvas>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-canvas.width = innerWidth;
-canvas.height = innerHeight;
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-let keys = {up:false,down:false,left:false,right:false};
+// PLAYER
+let player = {
+  x: 200,
+  y: 200,
+  size: 30,
+  speed: 3
+};
 
-let player = { x:1000, y:1000, size:30, inCar:false };
-
-let car = { x:1100, y:1000, w:50, h:30 };
-
-let bullets = [];
-
-let camera = {x:0,y:0};
-
+// NPCS
 let npcs = [];
-for(let i=0;i<6;i++){
+for (let i = 0; i < 5; i++) {
   npcs.push({
-    x:Math.random()*2000,
-    y:Math.random()*2000
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    size: 25
   });
 }
 
-// movimiento optimizado
-function update(){
-  let speed = player.inCar ? 8 : 4;
+// JOYSTICK
+let joystick = document.getElementById("joystick");
+let base = document.getElementById("joystickBase");
 
-  if(keys.up) player.y -= speed;
-  if(keys.down) player.y += speed;
-  if(keys.left) player.x -= speed;
-  if(keys.right) player.x += speed;
+let dragging = false;
+let inputX = 0;
+let inputY = 0;
 
-  // entrar al carro
-  let distCar = Math.hypot(player.x - car.x, player.y - car.y);
-  if(distCar < 50){
-    player.inCar = true;
-  }
+base.addEventListener("touchstart", (e) => {
+  dragging = true;
+});
 
-  // NPCs solo si están cerca
-  npcs.forEach(npc=>{
-    let dist = Math.hypot(player.x - npc.x, player.y - npc.y);
-    if(dist < 300){
-      npc.x += Math.random()*2-1;
-      npc.y += Math.random()*2-1;
-    }
-  });
+base.addEventListener("touchmove", (e) => {
+  if (!dragging) return;
 
-  // balas
-  bullets.forEach(b=>{
-    b.x += b.dx;
-    b.y += b.dy;
-  });
+  let touch = e.touches[0];
+  let rect = base.getBoundingClientRect();
 
-  camera.x = player.x - canvas.width/2;
-  camera.y = player.y - canvas.height/2;
-}
+  let x = touch.clientX - rect.left - 70;
+  let y = touch.clientY - rect.top - 70;
 
-// disparo
-function shoot(){
-  bullets.push({
-    x:player.x,
-    y:player.y,
-    dx:5,
-    dy:0
-  });
-}
-
-// render optimizado
-function draw(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  // suelo
-  ctx.fillStyle="green";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-
-  // calles
-  ctx.fillStyle="gray";
-  for(let i=0;i<2000;i+=200){
-    ctx.fillRect(i-camera.x,0-camera.y,40,2000);
-    ctx.fillRect(0-camera.x,i-camera.y,2000,40);
-  }
-
-  // carro
-  ctx.fillStyle="black";
-  ctx.fillRect(car.x-camera.x,car.y-camera.y,car.w,car.h);
-
-  // NPCs
-  ctx.fillStyle="red";
-  npcs.forEach(npc=>{
-    ctx.fillRect(npc.x-camera.x,npc.y-camera.y,25,25);
-  });
-
-  // balas
-  ctx.fillStyle="yellow";
-  bullets.forEach(b=>{
-    ctx.fillRect(b.x-camera.x,b.y-camera.y,5,5);
-  });
-
-  // jugador (centrado)
-  ctx.fillStyle="blue";
-  ctx.fillRect(canvas.width/2,canvas.height/2,player.size,player.size);
-}
-
-// loop con control FPS
-let last=0;
-function loop(time){
-  if(time-last>16){
-    update();
-    draw();
-    last=time;
-  }
-  requestAnimationFrame(loop);
-}
-requestAnimationFrame(loop);
-</script>
-
-</body>
-</html>
+  let dist = Math.sqrt(x*x + y*y);
+  let max =
