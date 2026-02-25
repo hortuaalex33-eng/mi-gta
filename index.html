@@ -1,162 +1,33 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Mini Mundo</title>
-</head>
-<body style="margin:0; overflow:hidden;">
-
-<canvas id="game"></canvas>
-
-<div id="controls">
-  <button onclick="move('up')">⬆️</button><br>
-  <button onclick="move('left')">⬅️</button>
-  <button onclick="move('down')">⬇️</button>
-  <button onclick="move('right')">➡️</button>
-</div>
-
-<style>
-#controls {
-  position: fixed;
-  bottom: 20px;
-  left: 20px;
-}
-button {
-  font-size: 20px;
-  margin: 5px;
-}
-</style>
-
-<script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
-let player = { x: 100, y: 100, size: 30 };
-
-function draw() {
-  ctx.fillStyle = "green";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // casas
-  ctx.fillStyle = "brown";
-  ctx.fillRect(300, 200, 80, 80);
-  ctx.fillRect(500, 100, 80, 80);
-
-  // jugador
-  ctx.fillStyle = "blue";
-  ctx.fillRect(player.x, player.y, player.size, player.size);
-}
-
-function move(dir) {
-  if (dir === "up") player.y -= 10;
-  if (dir === "down") player.y += 10;
-  if (dir === "left") player.x -= 10;
-  if (dir === "right") player.x += 10;
-}
-
-function loop() {
-  draw();
-  requestAnimationFrame(loop);
-}
-
-loop();
-</script>
-
-</body>
-</html>
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Mini Mundo</title>
-</head>
-<body style="margin:0; overflow:hidden;">
-
-<canvas id="game"></canvas>
-
-<div id="controls">
-  <button onclick="move('up')">⬆️</button><br>
-  <button onclick="move('left')">⬅️</button>
-  <button onclick="move('down')">⬇️</button>
-  <button onclick="move('right')">➡️</button>
-</div>
-
-<style>
-#controls {
-  position: fixed;
-  bottom: 20px;
-  left: 20px;
-}
-button {
-  font-size: 20px;
-  margin: 5px;
-}
-</style>
-
-<script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
-let player = { x: 100, y: 100, size: 30 };
-
-function draw() {
-  ctx.fillStyle = "green";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // casas
-  ctx.fillStyle = "brown";
-  ctx.fillRect(300, 200, 80, 80);
-  ctx.fillRect(500, 100, 80, 80);
-
-  // jugador
-  ctx.fillStyle = "blue";
-  ctx.fillRect(player.x, player.y, player.size, player.size);
-}
-
-function move(dir) {
-  if (dir === "up") player.y -= 10;
-  if (dir === "down") player.y += 10;
-  if (dir === "left") player.x -= 10;
-  if (dir === "right") player.x += 10;
-}
-
-function loop() {
-  draw();
-  requestAnimationFrame(loop);
-}
-
-loop();
-</script>
-
-</body>
-  </html><!DOCTYPE html>
-<html>
-<head>
 <meta charset="UTF-8">
-<title>Mini GTA</title>
+<title>Mini GTA PRO</title>
 <style>
-body { margin:0; overflow:hidden; }
+body { margin:0; overflow:hidden; background:black; }
 
-/* controles */
 #controls {
   position: fixed;
-  bottom: 30px;
-  left: 30px;
+  bottom: 20px;
+  left: 20px;
 }
 
 button {
-  font-size: 35px;
-  padding: 20px;
-  margin: 10px;
+  width: 80px;
+  height: 80px;
+  font-size: 25px;
+  margin: 8px;
   border-radius: 15px;
   background: rgba(0,0,0,0.6);
   color: white;
   border: none;
-  opacity: 0.7;
+}
+
+#shoot {
+  position: fixed;
+  bottom: 40px;
+  right: 40px;
+  background: red;
 }
 </style>
 </head>
@@ -172,123 +43,125 @@ button {
   <button ontouchstart="keys.right=true" ontouchend="keys.right=false">➡️</button>
 </div>
 
+<button id="shoot" ontouchstart="shoot()">💥</button>
+
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+canvas.width = innerWidth;
+canvas.height = innerHeight;
 
-const isMobile = window.innerWidth < 768;
-let speed = isMobile ? 4 : 7;
+let keys = {up:false,down:false,left:false,right:false};
 
-// jugador
-let player = { x: 1000, y: 1000, size: 30 };
+let player = { x:1000, y:1000, size:30, inCar:false };
 
-// cámara
-let camera = { x: 0, y: 0 };
+let car = { x:1100, y:1000, w:50, h:30 };
 
-// controles
-let keys = {
-  up:false,
-  down:false,
-  left:false,
-  right:false
-};
+let bullets = [];
 
-// NPCs
+let camera = {x:0,y:0};
+
 let npcs = [];
-for (let i = 0; i < 10; i++) {
+for(let i=0;i<6;i++){
   npcs.push({
-    x: Math.random()*2000,
-    y: Math.random()*2000,
-    dir: Math.random() < 0.5 ? 1 : -1
+    x:Math.random()*2000,
+    y:Math.random()*2000
   });
 }
 
-// casas
-let houses = [];
-for (let i = 0; i < 25; i++) {
-  houses.push({
-    x: Math.random()*2000,
-    y: Math.random()*2000
-  });
-}
+// movimiento optimizado
+function update(){
+  let speed = player.inCar ? 8 : 4;
 
-// actualizar NPCs
-function updateNPCs() {
-  npcs.forEach(npc => {
-    npc.x += npc.dir;
+  if(keys.up) player.y -= speed;
+  if(keys.down) player.y += speed;
+  if(keys.left) player.x -= speed;
+  if(keys.right) player.x += speed;
 
-    if (Math.random() < 0.01) {
-      npc.dir *= -1;
+  // entrar al carro
+  let distCar = Math.hypot(player.x - car.x, player.y - car.y);
+  if(distCar < 50){
+    player.inCar = true;
+  }
+
+  // NPCs solo si están cerca
+  npcs.forEach(npc=>{
+    let dist = Math.hypot(player.x - npc.x, player.y - npc.y);
+    if(dist < 300){
+      npc.x += Math.random()*2-1;
+      npc.y += Math.random()*2-1;
     }
   });
+
+  // balas
+  bullets.forEach(b=>{
+    b.x += b.dx;
+    b.y += b.dy;
+  });
+
+  camera.x = player.x - canvas.width/2;
+  camera.y = player.y - canvas.height/2;
 }
 
-// actualizar jugador
-function update() {
-  if (keys.up) player.y -= speed;
-  if (keys.down) player.y += speed;
-  if (keys.left) player.x -= speed;
-  if (keys.right) player.x += speed;
-
-  updateNPCs();
-
-  camera.x = player.x - canvas.width / 2;
-  camera.y = player.y - canvas.height / 2;
+// disparo
+function shoot(){
+  bullets.push({
+    x:player.x,
+    y:player.y,
+    dx:5,
+    dy:0
+  });
 }
 
-// dibujar todo
-function draw() {
+// render optimizado
+function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
   // suelo
-  ctx.fillStyle = "green";
+  ctx.fillStyle="green";
   ctx.fillRect(0,0,canvas.width,canvas.height);
 
   // calles
-  ctx.fillStyle = "gray";
-  for (let i = 0; i < 2000; i += 200) {
-    ctx.fillRect(i - camera.x, 0 - camera.y, 40, 2000);
-    ctx.fillRect(0 - camera.x, i - camera.y, 2000, 40);
+  ctx.fillStyle="gray";
+  for(let i=0;i<2000;i+=200){
+    ctx.fillRect(i-camera.x,0-camera.y,40,2000);
+    ctx.fillRect(0-camera.x,i-camera.y,2000,40);
   }
 
-  // casas (optimizadas por distancia)
-  houses.forEach(h => {
-    let dist = Math.hypot(player.x - h.x, player.y - h.y);
-    if (dist < 400) {
-      ctx.fillStyle = "brown";
-      ctx.fillRect(h.x - camera.x, h.y - camera.y, 80, 80);
-    }
-  });
+  // carro
+  ctx.fillStyle="black";
+  ctx.fillRect(car.x-camera.x,car.y-camera.y,car.w,car.h);
 
   // NPCs
-  npcs.forEach(npc => {
-    ctx.fillStyle = "red";
-    ctx.fillRect(npc.x - camera.x, npc.y - camera.y, 25, 25);
+  ctx.fillStyle="red";
+  npcs.forEach(npc=>{
+    ctx.fillRect(npc.x-camera.x,npc.y-camera.y,25,25);
+  });
+
+  // balas
+  ctx.fillStyle="yellow";
+  bullets.forEach(b=>{
+    ctx.fillRect(b.x-camera.x,b.y-camera.y,5,5);
   });
 
   // jugador (centrado)
-  ctx.fillStyle = "blue";
-  ctx.fillRect(
-    canvas.width/2,
-    canvas.height/2,
-    player.size,
-    player.size
-  );
+  ctx.fillStyle="blue";
+  ctx.fillRect(canvas.width/2,canvas.height/2,player.size,player.size);
 }
 
-// loop
-function loop() {
-  update();
-  draw();
+// loop con control FPS
+let last=0;
+function loop(time){
+  if(time-last>16){
+    update();
+    draw();
+    last=time;
+  }
   requestAnimationFrame(loop);
 }
-
-loop();
+requestAnimationFrame(loop);
 </script>
 
 </body>
 </html>
-
