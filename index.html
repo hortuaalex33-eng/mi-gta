@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Mini GTA Nivel 2</title>
+<style>
+body { margin: 0; overflow: hidden; background: #222; }
+canvas { display: block; margin: auto; background: #555; }
+
+.controls {
+  position: fixed;
+  bottom: 20px;
+  width: 100%;
+  text-align: center;
+}
+
+button {
+  width: 60px;
+  height: 60px;
+  margin: 5px;
+  font-size: 20px;
+  border-radius: 10px;
+  border: none;
+}
+</style>
+</head>
+<body>
+
+<canvas id="game" width="400" height="600"></canvas>
+
+<div class="controls">
+  <div>
+    <button ontouchstart="move('up')" ontouchend="stop()">⬆️</button>
+  </div>
+  <div>
+    <button ontouchstart="move('left')" ontouchend="stop()">⬅️</button>
+    <button ontouchstart="move('down')" ontouchend="stop()">⬇️</button>
+    <button ontouchstart="move('right')" ontouchend="stop()">➡️</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+// MAPA GRANDE
+const world = {
+  width: 1200,
+  height: 1200
+};
+
+// CÁMARA
+let camera = {
+  x: 0,
+  y: 0
+};
+
+let player = {
+  x: 600,
+  y: 600,
+  size: 20,
+  speed: 3,
+  dx: 0,
+  dy: 0
+};
+
+function move(dir) {
+  if (dir === "up") player.dy = -player.speed;
+  if (dir === "down") player.dy = player.speed;
+  if (dir === "left") player.dx = -player.speed;
+  if (dir === "right") player.dx = player.speed;
+}
+
+function stop() {
+  player.dx = 0;
+  player.dy = 0;
+}
+
+function update() {
+  player.x += player.dx;
+  player.y += player.dy;
+
+  // límites del mundo
+  player.x = Math.max(0, Math.min(world.width - player.size, player.x));
+  player.y = Math.max(0, Math.min(world.height - player.size, player.y));
+
+  // cámara sigue al jugador
+  camera.x = player.x - canvas.width / 2;
+  camera.y = player.y - canvas.height / 2;
+
+  // límites cámara
+  camera.x = Math.max(0, Math.min(world.width - canvas.width, camera.x));
+  camera.y = Math.max(0, Math.min(world.height - canvas.height, camera.y));
+}
+
+function drawMap() {
+  ctx.fillStyle = "#777";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // dibujar calles
+  ctx.fillStyle = "#333";
+  for (let i = 0; i < world.width; i += 200) {
+    ctx.fillRect(i - camera.x, 0 - camera.y, 50, world.height);
+  }
+
+  // casas
+  ctx.fillStyle = "#999";
+  for (let i = 100; i < world.width; i += 250) {
+    for (let j = 100; j < world.height; j += 250) {
+      ctx.fillRect(i - camera.x, j - camera.y, 80, 80);
+    }
+  }
+}
+
+function drawPlayer() {
+  ctx.fillStyle = "red";
+  ctx.fillRect(player.x - camera.x, player.y - camera.y, player.size, player.size);
+}
+
+function gameLoop() {
+  update();
+  drawMap();
+  drawPlayer();
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+
+</body>
+</html>
