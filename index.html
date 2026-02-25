@@ -1,156 +1,136 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Mini GTA PRO</title>
-<style>
-body { margin: 0; overflow: hidden; background: #222; }
-canvas { display: block; margin: auto; background: #555; }
+  <title>Mini Mundo</title>
+</head>
+<body style="margin:0; overflow:hidden;">
 
-.controls {
+<canvas id="game"></canvas>
+
+<div id="controls">
+  <button onclick="move('up')">⬆️</button><br>
+  <button onclick="move('left')">⬅️</button>
+  <button onclick="move('down')">⬇️</button>
+  <button onclick="move('right')">➡️</button>
+</div>
+
+<style>
+#controls {
   position: fixed;
   bottom: 20px;
-  width: 100%;
-  text-align: center;
+  left: 20px;
 }
-
 button {
-  width: 60px;
-  height: 60px;
-  margin: 5px;
   font-size: 20px;
-  border-radius: 10px;
-  border: none;
+  margin: 5px;
 }
 </style>
-</head>
-<body>
-
-<canvas id="game" width="400" height="600"></canvas>
-
-<div class="controls">
-  <div>
-    <button ontouchstart="move('up')" ontouchend="stop()">⬆️</button>
-  </div>
-  <div>
-    <button ontouchstart="move('left')" ontouchend="stop()">⬅️</button>
-    <button ontouchstart="move('down')" ontouchend="stop()">⬇️</button>
-    <button ontouchstart="move('right')" ontouchend="stop()">➡️</button>
-  </div>
-</div>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-// 🌆 MUNDO
-const world = {
-  width: 1200,
-  height: 1200
-};
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-// 🎥 CÁMARA
-let camera = { x: 0, y: 0 };
+let player = { x: 100, y: 100, size: 30 };
 
-// 🧍 JUGADOR
-let player = {
-  x: 600,
-  y: 600,
-  size: 20,
-  speed: 3,
-  dx: 0,
-  dy: 0
-};
-
-// 🏠 CASAS
-let casas = [
-  { x: 200, y: 150, w: 100, h: 100 },
-  { x: 500, y: 300, w: 120, h: 120 },
-  { x: 800, y: 700, w: 90, h: 90 },
-  { x: 300, y: 800, w: 150, h: 100 }
-];
-
-// 🎮 CONTROLES TÁCTILES
-function move(dir) {
-  if (dir === "up") player.dy = -player.speed;
-  if (dir === "down") player.dy = player.speed;
-  if (dir === "left") player.dx = -player.speed;
-  if (dir === "right") player.dx = player.speed;
-}
-
-function stop() {
-  player.dx = 0;
-  player.dy = 0;
-}
-
-// 🚧 COLISIONES
-function colision(a, b) {
-  return (
-    a.x < b.x + b.w &&
-    a.x + player.size > b.x &&
-    a.y < b.y + b.h &&
-    a.y + player.size > b.y
-  );
-}
-
-// 🔄 UPDATE
-function update() {
-  let nuevaX = player.x + player.dx;
-  let nuevaY = player.y + player.dy;
-
-  let bloqueado = casas.some(c => colision({x:nuevaX, y:nuevaY}, c));
-
-  if (!bloqueado) {
-    player.x = nuevaX;
-    player.y = nuevaY;
-  }
-
-  // límites del mundo
-  player.x = Math.max(0, Math.min(world.width - player.size, player.x));
-  player.y = Math.max(0, Math.min(world.height - player.size, player.y));
-
-  // cámara sigue al jugador
-  camera.x = player.x - canvas.width / 2;
-  camera.y = player.y - canvas.height / 2;
-
-  camera.x = Math.max(0, Math.min(world.width - canvas.width, camera.x));
-  camera.y = Math.max(0, Math.min(world.height - canvas.height, camera.y));
-}
-
-// 🎨 DIBUJAR MAPA
-function drawMap() {
-  ctx.fillStyle = "#777";
+function draw() {
+  ctx.fillStyle = "green";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // calles
-  ctx.fillStyle = "#333";
-  for (let i = 0; i < world.width; i += 200) {
-    ctx.fillRect(i - camera.x, 0 - camera.y, 50, world.height);
-  }
 
   // casas
   ctx.fillStyle = "brown";
-  casas.forEach(c => {
-    ctx.fillRect(c.x - camera.x, c.y - camera.y, c.w, c.h);
-  });
+  ctx.fillRect(300, 200, 80, 80);
+  ctx.fillRect(500, 100, 80, 80);
+
+  // jugador
+  ctx.fillStyle = "blue";
+  ctx.fillRect(player.x, player.y, player.size, player.size);
 }
 
-// 🧍 DIBUJAR JUGADOR
-function drawPlayer() {
-  ctx.fillStyle = "red";
-  ctx.fillRect(player.x - camera.x, player.y - camera.y, player.size, player.size);
+function move(dir) {
+  if (dir === "up") player.y -= 10;
+  if (dir === "down") player.y += 10;
+  if (dir === "left") player.x -= 10;
+  if (dir === "right") player.x += 10;
 }
 
-// 🔁 LOOP
-function gameLoop() {
-  update();
-  drawMap();
-  drawPlayer();
-  requestAnimationFrame(gameLoop);
+function loop() {
+  draw();
+  requestAnimationFrame(loop);
 }
 
-gameLoop();
+loop();
 </script>
 
 </body>
 </html>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mini Mundo</title>
+</head>
+<body style="margin:0; overflow:hidden;">
+
+<canvas id="game"></canvas>
+
+<div id="controls">
+  <button onclick="move('up')">⬆️</button><br>
+  <button onclick="move('left')">⬅️</button>
+  <button onclick="move('down')">⬇️</button>
+  <button onclick="move('right')">➡️</button>
+</div>
+
+<style>
+#controls {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+}
+button {
+  font-size: 20px;
+  margin: 5px;
+}
+</style>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let player = { x: 100, y: 100, size: 30 };
+
+function draw() {
+  ctx.fillStyle = "green";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // casas
+  ctx.fillStyle = "brown";
+  ctx.fillRect(300, 200, 80, 80);
+  ctx.fillRect(500, 100, 80, 80);
+
+  // jugador
+  ctx.fillStyle = "blue";
+  ctx.fillRect(player.x, player.y, player.size, player.size);
+}
+
+function move(dir) {
+  if (dir === "up") player.y -= 10;
+  if (dir === "down") player.y += 10;
+  if (dir === "left") player.x -= 10;
+  if (dir === "right") player.x += 10;
+}
+
+function loop() {
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+
+</body>
+  </html>
