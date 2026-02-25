@@ -6,69 +6,43 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body {
-  margin: 0;
-  overflow: hidden;
-  background: #111;
-}
+body { margin:0; overflow:hidden; background:#111; }
+canvas { display:block; }
 
-/* CANVAS */
-canvas {
-  display: block;
-}
-
-/* MENU */
-#menu {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  background: black;
-  color: white;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-}
-
-#menu button {
-  padding: 20px;
-  font-size: 20px;
-}
-
-/* JOYSTICK */
 #joystickBase {
-  position: absolute;
-  bottom: 40px;
-  left: 40px;
-  width: 140px;
-  height: 140px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 50%;
+  position:absolute; bottom:40px; left:40px;
+  width:140px; height:140px;
+  background:rgba(255,255,255,0.1);
+  border-radius:50%;
 }
 
 #joystick {
-  position: absolute;
-  width: 70px;
-  height: 70px;
-  background: rgba(0,255,255,0.7);
-  border-radius: 50%;
-  left: 35px;
-  top: 35px;
+  position:absolute;
+  width:70px; height:70px;
+  background:cyan;
+  border-radius:50%;
+  left:35px; top:35px;
+}
+
+#shootBtn {
+  position:absolute;
+  bottom:60px; right:40px;
+  width:80px; height:80px;
+  background:red;
+  border-radius:50%;
+  color:white;
+  font-weight:bold;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 </style>
 </head>
 
 <body>
 
-<div id="menu">
-  <h1>MI GTA PRO 😈</h1>
-  <button onclick="startGame()">JUGAR</button>
-</div>
-
-<div id="joystickBase">
-  <div id="joystick"></div>
-</div>
+<div id="joystickBase"><div id="joystick"></div></div>
+<div id="shootBtn">FIRE</div>
 
 <canvas id="game"></canvas>
 
@@ -76,195 +50,184 @@ canvas {
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+canvas.width = innerWidth;
+canvas.height = innerHeight;
 
-// ====== ESTADO ======
-let gameStarted = false;
-
-// ====== PLAYER ======
+// PLAYER
 let player = {
-  x: 500,
-  y: 500,
-  size: 30,
-  speed: 2.5,
-  inCar: false
+  x:200, y:200,
+  size:30,
+  speed:220
 };
 
-// ====== VEHÍCULO ======
-let car = {
-  x: 700,
-  y: 500,
-  width: 60,
-  height: 30,
-  speed: 5
-};
-
-// ====== NPCs ======
+// NPC
 let npcs = [];
-for (let i = 0; i < 10; i++) {
+for(let i=0;i<5;i++){
   npcs.push({
-    x: Math.random() * 3000,
-    y: Math.random() * 3000,
-    size: 25
+    x:Math.random()*canvas.width,
+    y:Math.random()*canvas.height,
+    size:25,
+    speed:70
   });
 }
 
-// ====== CIUDAD GRANDE ======
-let buildings = [];
-for (let i = 0; i < 50; i++) {
-  buildings.push({
-    x: Math.random() * 3000,
-    y: Math.random() * 3000,
-    w: 80 + Math.random() * 80,
-    h: 80 + Math.random() * 80
+// POLICIA
+let police = [];
+for(let i=0;i<3;i++){
+  police.push({
+    x:Math.random()*canvas.width,
+    y:Math.random()*canvas.height,
+    size:28,
+    speed:120
   });
 }
 
-// ====== JOYSTICK ======
+// BALAS
+let bullets = [];
+
+// JOYSTICK
 let joystick = document.getElementById("joystick");
 let base = document.getElementById("joystickBase");
 
-let dragging = false;
-let inputX = 0;
-let inputY = 0;
+let dragging=false, inputX=0, inputY=0;
 
-base.addEventListener("touchstart", () => dragging = true);
+base.addEventListener("touchstart", ()=>dragging=true);
 
-base.addEventListener("touchmove", (e) => {
-  if (!dragging) return;
+base.addEventListener("touchmove", e=>{
+  if(!dragging) return;
 
-  let touch = e.touches[0];
-  let rect = base.getBoundingClientRect();
+  let t=e.touches[0];
+  let r=base.getBoundingClientRect();
 
-  let x = touch.clientX - rect.left - 70;
-  let y = touch.clientY - rect.top - 70;
+  let x=t.clientX-r.left-70;
+  let y=t.clientY-r.top-70;
 
-  let dist = Math.sqrt(x*x + y*y);
-  let max = 50;
+  let d=Math.sqrt(x*x+y*y);
+  let max=50;
 
-  if (dist > max) {
-    x = (x / dist) * max;
-    y = (y / dist) * max;
-  }
+  if(d>max){ x=(x/d)*max; y=(y/d)*max; }
 
-  joystick.style.left = (x + 35) + "px";
-  joystick.style.top = (y + 35) + "px";
+  joystick.style.left=(x+70-35)+"px";
+  joystick.style.top=(y+70-35)+"px";
 
-  inputX = x / max;
-  inputY = y / max;
+  inputX=x/max;
+  inputY=y/max;
 });
 
-base.addEventListener("touchend", () => {
-  dragging = false;
-  joystick.style.left = "35px";
-  joystick.style.top = "35px";
-  inputX = 0;
-  inputY = 0;
+base.addEventListener("touchend", ()=>{
+  dragging=false;
+  inputX=0; inputY=0;
+  joystick.style.left="35px";
+  joystick.style.top="35px";
 });
 
-// ====== ENTRAR AL CARRO ======
-window.addEventListener("touchstart", () => {
-  let dx = player.x - car.x;
-  let dy = player.y - car.y;
-  let dist = Math.sqrt(dx*dx + dy*dy);
-
-  if (dist < 80) {
-    player.inCar = !player.inCar;
-  }
-});
-
-// ====== CÁMARA ======
-let camX = 0;
-let camY = 0;
-
-// ====== INICIO ======
-function startGame() {
-  document.getElementById("menu").style.display = "none";
-  gameStarted = true;
-}
-
-// ====== UPDATE ======
-function update() {
-
-  let speedMultiplier = Math.sqrt(inputX*inputX + inputY*inputY) > 0.7 ? 2 : 1;
-
-  if (player.inCar) {
-    car.x += inputX * car.speed * speedMultiplier;
-    car.y += inputY * car.speed * speedMultiplier;
-
-    player.x = car.x;
-    player.y = car.y;
-  } else {
-    player.x += inputX * player.speed * speedMultiplier;
-    player.y += inputY * player.speed * speedMultiplier;
-  }
-
-  // NPCs
-  npcs.forEach(npc => {
-    npc.x += (Math.random() - 0.5) * 2;
-    npc.y += (Math.random() - 0.5) * 2;
+// DISPARO
+document.getElementById("shootBtn").addEventListener("touchstart", ()=>{
+  bullets.push({
+    x:player.x,
+    y:player.y,
+    vx:inputX*400,
+    vy:inputY*400
   });
+});
 
-  // Cámara sigue al jugador
-  camX = player.x - canvas.width / 2;
-  camY = player.y - canvas.height / 2;
+// LOOP
+let last=0;
+function loop(t){
+  let dt=(t-last)/1000;
+  last=t;
+
+  update(dt);
+  draw();
+
+  requestAnimationFrame(loop);
 }
+requestAnimationFrame(loop);
 
-// ====== DRAW ======
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  ctx.save();
-  ctx.translate(-camX, -camY);
-
-  // CALLES (GRID GRANDE)
-  ctx.strokeStyle = "#222";
-  for (let i = 0; i < 3000; i += 100) {
-    ctx.beginPath();
-    ctx.moveTo(i, 0);
-    ctx.lineTo(i, 3000);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(0, i);
-    ctx.lineTo(3000, i);
-    ctx.stroke();
-  }
-
-  // EDIFICIOS
-  ctx.fillStyle = "#555";
-  buildings.forEach(b => {
-    ctx.fillRect(b.x, b.y, b.w, b.h);
-  });
-
-  // CARRO
-  ctx.fillStyle = "yellow";
-  ctx.fillRect(car.x, car.y, car.width, car.height);
+// UPDATE
+function update(dt){
 
   // PLAYER
-  ctx.fillStyle = "cyan";
-  ctx.fillRect(player.x, player.y, player.size, player.size);
+  player.x+=inputX*player.speed*dt;
+  player.y+=inputY*player.speed*dt;
 
-  // NPCs
-  ctx.fillStyle = "red";
-  npcs.forEach(npc => {
-    ctx.fillRect(npc.x, npc.y, npc.size, npc.size);
+  // NPC (civiles)
+  for(let npc of npcs){
+    moveToPlayer(npc, dt);
+  }
+
+  // POLICIA (más agresiva)
+  for(let p of police){
+    moveToPlayer(p, dt, 1.5);
+  }
+
+  // BALAS
+  bullets.forEach(b=>{
+    b.x+=b.vx*dt;
+    b.y+=b.vy*dt;
   });
 
-  ctx.restore();
+  // COLISIONES
+  bullets.forEach((b,bi)=>{
+    npcs.forEach((npc,ni)=>{
+      if(hit(b,npc)){
+        npcs.splice(ni,1);
+        bullets.splice(bi,1);
+      }
+    });
+
+    police.forEach((p,pi)=>{
+      if(hit(b,p)){
+        police.splice(pi,1);
+        bullets.splice(bi,1);
+      }
+    });
+  });
 }
 
-// ====== LOOP ======
-function gameLoop() {
-  if (gameStarted) {
-    update();
-    draw();
+// IA PRO
+function moveToPlayer(e, dt, boost=1){
+  let dx=player.x-e.x;
+  let dy=player.y-e.y;
+  let dist=Math.sqrt(dx*dx+dy*dy);
+
+  if(dist>2){
+    let dirX=dx/dist;
+    let dirY=dy/dist;
+
+    e.x+=dirX*e.speed*boost*dt;
+    e.y+=dirY*e.speed*boost*dt;
   }
-  requestAnimationFrame(gameLoop);
 }
 
-gameLoop();
+// HITBOX
+function hit(a,b){
+  return a.x<b.x+b.size &&
+         a.x+5>b.x &&
+         a.y<b.y+b.size &&
+         a.y+5>b.y;
+}
+
+// DRAW
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // PLAYER
+  ctx.fillStyle="cyan";
+  ctx.fillRect(player.x,player.y,player.size,player.size);
+
+  // NPC
+  ctx.fillStyle="orange";
+  npcs.forEach(n=>ctx.fillRect(n.x,n.y,n.size,n.size));
+
+  // POLICIA
+  ctx.fillStyle="blue";
+  police.forEach(p=>ctx.fillRect(p.x,p.y,p.size,p.size));
+
+  // BALAS
+  ctx.fillStyle="yellow";
+  bullets.forEach(b=>ctx.fillRect(b.x,b.y,5,5));
+}
 </script>
 
 </body>
