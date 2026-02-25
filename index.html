@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Mini GTA Nivel 2</title>
+<title>Mini GTA PRO</title>
 <style>
 body { margin: 0; overflow: hidden; background: #222; }
 canvas { display: block; margin: auto; background: #555; }
@@ -43,18 +43,16 @@ button {
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-// MAPA GRANDE
+// 🌆 MUNDO
 const world = {
   width: 1200,
   height: 1200
 };
 
-// CÁMARA
-let camera = {
-  x: 0,
-  y: 0
-};
+// 🎥 CÁMARA
+let camera = { x: 0, y: 0 };
 
+// 🧍 JUGADOR
 let player = {
   x: 600,
   y: 600,
@@ -64,6 +62,15 @@ let player = {
   dy: 0
 };
 
+// 🏠 CASAS
+let casas = [
+  { x: 200, y: 150, w: 100, h: 100 },
+  { x: 500, y: 300, w: 120, h: 120 },
+  { x: 800, y: 700, w: 90, h: 90 },
+  { x: 300, y: 800, w: 150, h: 100 }
+];
+
+// 🎮 CONTROLES TÁCTILES
 function move(dir) {
   if (dir === "up") player.dy = -player.speed;
   if (dir === "down") player.dy = player.speed;
@@ -76,9 +83,27 @@ function stop() {
   player.dy = 0;
 }
 
+// 🚧 COLISIONES
+function colision(a, b) {
+  return (
+    a.x < b.x + b.w &&
+    a.x + player.size > b.x &&
+    a.y < b.y + b.h &&
+    a.y + player.size > b.y
+  );
+}
+
+// 🔄 UPDATE
 function update() {
-  player.x += player.dx;
-  player.y += player.dy;
+  let nuevaX = player.x + player.dx;
+  let nuevaY = player.y + player.dy;
+
+  let bloqueado = casas.some(c => colision({x:nuevaX, y:nuevaY}, c));
+
+  if (!bloqueado) {
+    player.x = nuevaX;
+    player.y = nuevaY;
+  }
 
   // límites del mundo
   player.x = Math.max(0, Math.min(world.width - player.size, player.x));
@@ -88,35 +113,35 @@ function update() {
   camera.x = player.x - canvas.width / 2;
   camera.y = player.y - canvas.height / 2;
 
-  // límites cámara
   camera.x = Math.max(0, Math.min(world.width - canvas.width, camera.x));
   camera.y = Math.max(0, Math.min(world.height - canvas.height, camera.y));
 }
 
+// 🎨 DIBUJAR MAPA
 function drawMap() {
   ctx.fillStyle = "#777";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // dibujar calles
+  // calles
   ctx.fillStyle = "#333";
   for (let i = 0; i < world.width; i += 200) {
     ctx.fillRect(i - camera.x, 0 - camera.y, 50, world.height);
   }
 
   // casas
-  ctx.fillStyle = "#999";
-  for (let i = 100; i < world.width; i += 250) {
-    for (let j = 100; j < world.height; j += 250) {
-      ctx.fillRect(i - camera.x, j - camera.y, 80, 80);
-    }
-  }
+  ctx.fillStyle = "brown";
+  casas.forEach(c => {
+    ctx.fillRect(c.x - camera.x, c.y - camera.y, c.w, c.h);
+  });
 }
 
+// 🧍 DIBUJAR JUGADOR
 function drawPlayer() {
   ctx.fillStyle = "red";
   ctx.fillRect(player.x - camera.x, player.y - camera.y, player.size, player.size);
 }
 
+// 🔁 LOOP
 function gameLoop() {
   update();
   drawMap();
