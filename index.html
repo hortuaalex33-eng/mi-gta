@@ -133,4 +133,162 @@ loop();
 </script>
 
 </body>
-  </html>
+  </html><!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Mini GTA</title>
+<style>
+body { margin:0; overflow:hidden; }
+
+/* controles */
+#controls {
+  position: fixed;
+  bottom: 30px;
+  left: 30px;
+}
+
+button {
+  font-size: 35px;
+  padding: 20px;
+  margin: 10px;
+  border-radius: 15px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  border: none;
+  opacity: 0.7;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="game"></canvas>
+
+<div id="controls">
+  <button ontouchstart="keys.up=true" ontouchend="keys.up=false">⬆️</button><br>
+  <button ontouchstart="keys.left=true" ontouchend="keys.left=false">⬅️</button>
+  <button ontouchstart="keys.down=true" ontouchend="keys.down=false">⬇️</button>
+  <button ontouchstart="keys.right=true" ontouchend="keys.right=false">➡️</button>
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const isMobile = window.innerWidth < 768;
+let speed = isMobile ? 4 : 7;
+
+// jugador
+let player = { x: 1000, y: 1000, size: 30 };
+
+// cámara
+let camera = { x: 0, y: 0 };
+
+// controles
+let keys = {
+  up:false,
+  down:false,
+  left:false,
+  right:false
+};
+
+// NPCs
+let npcs = [];
+for (let i = 0; i < 10; i++) {
+  npcs.push({
+    x: Math.random()*2000,
+    y: Math.random()*2000,
+    dir: Math.random() < 0.5 ? 1 : -1
+  });
+}
+
+// casas
+let houses = [];
+for (let i = 0; i < 25; i++) {
+  houses.push({
+    x: Math.random()*2000,
+    y: Math.random()*2000
+  });
+}
+
+// actualizar NPCs
+function updateNPCs() {
+  npcs.forEach(npc => {
+    npc.x += npc.dir;
+
+    if (Math.random() < 0.01) {
+      npc.dir *= -1;
+    }
+  });
+}
+
+// actualizar jugador
+function update() {
+  if (keys.up) player.y -= speed;
+  if (keys.down) player.y += speed;
+  if (keys.left) player.x -= speed;
+  if (keys.right) player.x += speed;
+
+  updateNPCs();
+
+  camera.x = player.x - canvas.width / 2;
+  camera.y = player.y - canvas.height / 2;
+}
+
+// dibujar todo
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // suelo
+  ctx.fillStyle = "green";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // calles
+  ctx.fillStyle = "gray";
+  for (let i = 0; i < 2000; i += 200) {
+    ctx.fillRect(i - camera.x, 0 - camera.y, 40, 2000);
+    ctx.fillRect(0 - camera.x, i - camera.y, 2000, 40);
+  }
+
+  // casas (optimizadas por distancia)
+  houses.forEach(h => {
+    let dist = Math.hypot(player.x - h.x, player.y - h.y);
+    if (dist < 400) {
+      ctx.fillStyle = "brown";
+      ctx.fillRect(h.x - camera.x, h.y - camera.y, 80, 80);
+    }
+  });
+
+  // NPCs
+  npcs.forEach(npc => {
+    ctx.fillStyle = "red";
+    ctx.fillRect(npc.x - camera.x, npc.y - camera.y, 25, 25);
+  });
+
+  // jugador (centrado)
+  ctx.fillStyle = "blue";
+  ctx.fillRect(
+    canvas.width/2,
+    canvas.height/2,
+    player.size,
+    player.size
+  );
+}
+
+// loop
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+
+</body>
+</html>
+
