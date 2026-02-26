@@ -2,307 +2,258 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>MI GTA PRO</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini Candy GOD ULTRA 😈</title>
 
 <style>
-body { margin:0; overflow:hidden; background:#111; }
-canvas { display:block; }
-
-#joystickBase {
-  position:absolute; bottom:40px; left:40px;
-  width:140px; height:140px;
-  background:rgba(255,255,255,0.1);
-  border-radius:50%;
+body {
+  background: linear-gradient(135deg, #141e30, #243b55);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: white;
+  font-family: Arial;
 }
 
-#joystick {
-  position:absolute;
-  width:70px; height:70px;
-  background:cyan;
-  border-radius:50%;
-  left:35px; top:35px;
+#tablero {
+  display: grid;
+  grid-template-columns: repeat(8, 50px);
+  gap: 5px;
 }
 
-#shootBtn {
-  position:absolute;
-  bottom:60px; right:40px;
-  width:80px; height:80px;
-  background:red;
-  border-radius:50%;
-  color:white;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+.celda {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  transition: 0.2s;
 }
 
-#money {
-  position:absolute;
-  top:20px;
-  left:20px;
-  color:#0f0;
-  font-weight:bold;
+.rojo { background:#ff4d4d; }
+.azul { background:#4da6ff; }
+.verde { background:#4dff88; }
+.amarillo { background:#ffd24d; }
+.morado { background:#b84dff; }
+
+.eliminado { opacity:0; }
+
+#ranking {
+  margin-top: 15px;
 }
 </style>
 </head>
 
 <body>
 
-<div id="joystickBase"><div id="joystick"></div></div>
-<div id="shootBtn">FIRE</div>
-<div id="money">$0</div>
+<h2>🍬 Candy GOD ULTRA 😈</h2>
 
-<canvas id="game"></canvas>
+<input id="nombre" placeholder="Tu nombre">
+<button onclick="guardarJugador()">Guardar</button>
+
+<div>
+Nivel: <span id="nivel">1</span> |
+Puntos: <span id="score">0</span> |
+❤️ <span id="vidas">5</span>
+</div>
+
+<div id="tablero"></div>
+
+<h3>🏆 Ranking</h3>
+<div id="ranking"></div>
 
 <script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+const colores=["rojo","azul","verde","amarillo","morado"];
+const width=8;
 
-canvas.width = innerWidth;
-canvas.height = innerHeight;
+let grid=[];
+let seleccionado=null;
 
-// 🌍 MUNDO
-let world = { width:3000, height:3000 };
+let score=0;
+let nivel=1;
+let vidas=5;
+let objetivo=100;
+let jugador="Anon";
 
-// 🎥 CAMARA
-let camera = { x:0, y:0 };
+// 🔹 Cargar datos guardados
+function cargarDatos(){
+  let data=JSON.parse(localStorage.getItem("save"));
 
-// 💰 DINERO
-let money = 0;
-
-// ⏱️ DIA/NOCHE
-let time = 0;
-
-// PLAYER
-let player = {
-  x:1500, y:1500,
-  size:30,
-  speed:220,
-  inCar:false
-};
-
-// 🚗 CARRO
-let car = {
-  x:1600, y:1500,
-  width:60,
-  height:30,
-  speed:400
-};
-
-// NPC
-let npcs=[];
-for(let i=0;i<6;i++){
-  npcs.push({
-    x:Math.random()*world.width,
-    y:Math.random()*world.height,
-    size:25,
-    speed:70
-  });
-}
-
-// POLICIA
-let police=[];
-for(let i=0;i<3;i++){
-  police.push({
-    x:Math.random()*world.width,
-    y:Math.random()*world.height,
-    size:28,
-    speed:120
-  });
-}
-
-// BALAS
-let bullets=[];
-
-// JOYSTICK
-let joystick=document.getElementById("joystick");
-let base=document.getElementById("joystickBase");
-
-let dragging=false,inputX=0,inputY=0;
-
-base.addEventListener("touchstart",()=>dragging=true);
-
-base.addEventListener("touchmove",e=>{
-  if(!dragging)return;
-
-  let t=e.touches[0];
-  let r=base.getBoundingClientRect();
-
-  let x=t.clientX-r.left-70;
-  let y=t.clientY-r.top-70;
-
-  let d=Math.sqrt(x*x+y*y);
-  let max=50;
-
-  if(d>max){x=(x/d)*max;y=(y/d)*max;}
-
-  joystick.style.left=(x+70-35)+"px";
-  joystick.style.top=(y+70-35)+"px";
-
-  inputX=x/max;
-  inputY=y/max;
-});
-
-base.addEventListener("touchend",()=>{
-  dragging=false;
-  inputX=0;inputY=0;
-  joystick.style.left="35px";
-  joystick.style.top="35px";
-});
-
-// DISPARO
-document.getElementById("shootBtn").addEventListener("touchstart",()=>{
-  bullets.push({
-    x:player.x,
-    y:player.y,
-    vx:inputX*500,
-    vy:inputY*500
-  });
-});
-
-// LOOP
-let last=0;
-function loop(t){
-  let dt=(t-last)/1000;
-  last=t;
-
-  update(dt);
-  draw();
-
-  requestAnimationFrame(loop);
-}
-requestAnimationFrame(loop);
-
-// UPDATE
-function update(dt){
-
-  time+=dt;
-
-  // ENTRAR / SALIR CARRO
-  let distCar=Math.hypot(player.x-car.x,player.y-car.y);
-  if(distCar<50 && inputY<-0.8){
-    player.inCar=true;
+  if(data){
+    score=data.score;
+    nivel=data.nivel;
+    vidas=data.vidas;
+    jugador=data.jugador;
   }
-  if(player.inCar && inputY>0.8){
-    player.inCar=false;
-  }
+}
 
-  // MOVIMIENTO
-  if(player.inCar){
-    car.x+=inputX*car.speed*dt;
-    car.y+=inputY*car.speed*dt;
-    player.x=car.x;
-    player.y=car.y;
+// 🔹 Guardar datos
+function guardarDatos(){
+  localStorage.setItem("save", JSON.stringify({
+    score,nivel,vidas,jugador
+  }));
+}
+
+function guardarJugador(){
+  jugador=document.getElementById("nombre").value || "Anon";
+  guardarDatos();
+}
+
+function crearTablero(){
+  tablero.innerHTML="";
+  grid=[];
+
+  for(let i=0;i<64;i++){
+    let c=document.createElement("div");
+    c.className="celda "+colores[Math.floor(Math.random()*colores.length)];
+    c.onclick=()=>seleccionar(c);
+    tablero.appendChild(c);
+    grid.push(c);
+  }
+}
+
+function seleccionar(c){
+  if(!seleccionado){
+    seleccionado=c;
   }else{
-    player.x+=inputX*player.speed*dt;
-    player.y+=inputY*player.speed*dt;
-  }
-
-  // CAMARA
-  camera.x=player.x-canvas.width/2;
-  camera.y=player.y-canvas.height/2;
-
-  // NPC
-  npcs.forEach(n=>moveToPlayer(n,dt));
-
-  // POLICIA
-  police.forEach(p=>moveToPlayer(p,dt,1.5));
-
-  // BALAS
-  bullets.forEach(b=>{
-    b.x+=b.vx*dt;
-    b.y+=b.vy*dt;
-  });
-
-  // COLISIONES
-  bullets.forEach((b,bi)=>{
-    npcs.forEach((n,ni)=>{
-      if(hit(b,n)){
-        npcs.splice(ni,1);
-        bullets.splice(bi,1);
-        money+=10;
-      }
-    });
-
-    police.forEach((p,pi)=>{
-      if(hit(b,p)){
-        police.splice(pi,1);
-        bullets.splice(bi,1);
-        money+=50;
-      }
-    });
-  });
-
-  document.getElementById("money").innerText="$"+money;
-}
-
-// IA
-function moveToPlayer(e,dt,boost=1){
-  let dx=player.x-e.x;
-  let dy=player.y-e.y;
-  let d=Math.sqrt(dx*dx+dy*dy);
-
-  if(d>2){
-    e.x+=(dx/d)*e.speed*boost*dt;
-    e.y+=(dy/d)*e.speed*boost*dt;
+    intercambiar(seleccionado,c);
+    seleccionado=null;
   }
 }
 
-// HIT
-function hit(a,b){
-  return a.x<b.x+b.size &&
-         a.x+5>b.x &&
-         a.y<b.y+b.size &&
-         a.y+5>b.y;
+function intercambiar(a,b){
+  let ca=getColorClass(a);
+  let cb=getColorClass(b);
+
+  a.className="celda "+cb;
+  b.className="celda "+ca;
+
+  setTimeout(eliminarCombos,100);
 }
 
-// MAPA
-function drawMap(){
-  for(let x=0;x<world.width;x+=100){
-    for(let y=0;y<world.height;y+=100){
-      ctx.strokeStyle="#333";
-      ctx.strokeRect(x-camera.x,y-camera.y,100,100);
+function eliminarCombos(){
+  let encontrados=[];
+
+  for(let i=0;i<64;i++){
+    if(i%width<6){
+      let c=getColor(i);
+      if(c && c===getColor(i+1)&&c===getColor(i+2)){
+        encontrados.push(i,i+1,i+2);
+      }
+    }
+
+    if(i<48){
+      let c=getColor(i);
+      if(c && c===getColor(i+width)&&c===getColor(i+width*2)){
+        encontrados.push(i,i+width,i+width*2);
+      }
     }
   }
+
+  encontrados=[...new Set(encontrados)];
+
+  if(encontrados.length===0){
+    vidas--;
+    guardarDatos();
+    updateUI();
+
+    if(vidas<=0){
+      guardarRanking();
+      alert("💀 Game Over");
+      reiniciar();
+    }
+    return;
+  }
+
+  encontrados.forEach(i=>{
+    grid[i].className="celda eliminado";
+    score+=10;
+  });
+
+  if(score>=objetivo){
+    nivel++;
+    objetivo+=100;
+    crearTablero();
+  }
+
+  guardarDatos();
+  updateUI();
+
+  setTimeout(caer,200);
 }
 
-// DRAW
-function draw(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+function caer(){
+  for(let i=55;i>=0;i--){
+    if(grid[i+width].classList.contains("eliminado")){
+      let c=getColor(i);
+      grid[i+width].className="celda "+c;
+      grid[i].className="celda eliminado";
+    }
+  }
 
-  // DIA/NOCHE
-  let darkness=(Math.sin(time*0.2)+1)/2;
-  ctx.fillStyle="rgba(0,0,0,"+(1-darkness)+")";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
+  for(let i=0;i<width;i++){
+    if(grid[i].classList.contains("eliminado")){
+      let c=colores[Math.floor(Math.random()*colores.length)];
+      grid[i].className="celda "+c;
+    }
+  }
 
-  drawMap();
+  setTimeout(eliminarCombos,200);
+}
 
-  // CARRO
-  ctx.fillStyle="gray";
-  ctx.fillRect(car.x-camera.x,car.y-camera.y,car.width,car.height);
+function getColor(i){
+  return colores.find(c=>grid[i].classList.contains(c));
+}
 
-  // PLAYER
-  ctx.fillStyle="cyan";
-  ctx.fillRect(player.x-camera.x,player.y-camera.y,player.size,player.size);
+function getColorClass(c){
+  return colores.find(x=>c.classList.contains(x));
+}
 
-  // NPC
-  ctx.fillStyle="orange";
-  npcs.forEach(n=>{
-    ctx.fillRect(n.x-camera.x,n.y-camera.y,n.size,n.size);
-  });
+function updateUI(){
+  scoreEl.innerText=score;
+  nivelEl.innerText=nivel;
+  vidasEl.innerText=vidas;
+}
 
-  // POLICIA
-  ctx.fillStyle="blue";
-  police.forEach(p=>{
-    ctx.fillRect(p.x-camera.x,p.y-camera.y,p.size,p.size);
-  });
+function reiniciar(){
+  score=0;
+  nivel=1;
+  vidas=5;
+  crearTablero();
+  guardarDatos();
+}
 
-  // BALAS
-  ctx.fillStyle="yellow";
-  bullets.forEach(b=>{
-    ctx.fillRect(b.x-camera.x,b.y-camera.y,5,5);
+function guardarRanking(){
+  let ranking=JSON.parse(localStorage.getItem("ranking"))||[];
+
+  ranking.push({jugador,score});
+
+  ranking.sort((a,b)=>b.score-a.score);
+  ranking=ranking.slice(0,5);
+
+  localStorage.setItem("ranking",JSON.stringify(ranking));
+  mostrarRanking();
+}
+
+function mostrarRanking(){
+  let ranking=JSON.parse(localStorage.getItem("ranking"))||[];
+  rankingDiv.innerHTML="";
+
+  ranking.forEach(r=>{
+    let d=document.createElement("div");
+    d.innerText=r.jugador+" - "+r.score;
+    rankingDiv.appendChild(d);
   });
 }
+
+// INIT
+const tablero=document.getElementById("tablero");
+const scoreEl=document.getElementById("score");
+const nivelEl=document.getElementById("nivel");
+const vidasEl=document.getElementById("vidas");
+const rankingDiv=document.getElementById("ranking");
+
+cargarDatos();
+crearTablero();
+updateUI();
+mostrarRanking();
 </script>
 
 </body>
