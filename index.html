@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Mini Candy GOD ULTRA 😈</title>
+<title>Mini Candy GOD ULTRA PRO 😈</title>
 
 <style>
 body {
@@ -24,7 +24,7 @@ body {
   width: 50px;
   height: 50px;
   border-radius: 12px;
-  transition: 0.2s;
+  transition: 0.3s;
 }
 
 .rojo { background:#ff4d4d; }
@@ -33,17 +33,21 @@ body {
 .amarillo { background:#ffd24d; }
 .morado { background:#b84dff; }
 
-.eliminado { opacity:0; }
-
-#ranking {
-  margin-top: 15px;
+.bomba {
+  border: 3px solid white;
 }
+
+.eliminado {
+  opacity:0;
+  transform: scale(0.5);
+}
+
 </style>
 </head>
 
 <body>
 
-<h2>🍬 Candy GOD ULTRA 😈</h2>
+<h2>🍬 Candy GOD ULTRA PRO 😈</h2>
 
 <input id="nombre" placeholder="Tu nombre">
 <button onclick="guardarJugador()">Guardar</button>
@@ -72,10 +76,8 @@ let vidas=5;
 let objetivo=100;
 let jugador="Anon";
 
-// 🔹 Cargar datos guardados
 function cargarDatos(){
   let data=JSON.parse(localStorage.getItem("save"));
-
   if(data){
     score=data.score;
     nivel=data.nivel;
@@ -84,7 +86,6 @@ function cargarDatos(){
   }
 }
 
-// 🔹 Guardar datos
 function guardarDatos(){
   localStorage.setItem("save", JSON.stringify({
     score,nivel,vidas,jugador
@@ -113,22 +114,45 @@ function seleccionar(c){
   if(!seleccionado){
     seleccionado=c;
   }else{
-    intercambiar(seleccionado,c);
+    if(esAdyacente(seleccionado,c)){
+      intercambiar(seleccionado,c,true);
+    }
     seleccionado=null;
   }
 }
 
-function intercambiar(a,b){
+function esAdyacente(a,b){
+  let ai=grid.indexOf(a);
+  let bi=grid.indexOf(b);
+  return [1,-1,width,-width].includes(ai-bi);
+}
+
+function intercambiar(a,b,validar=false){
   let ca=getColorClass(a);
   let cb=getColorClass(b);
 
   a.className="celda "+cb;
   b.className="celda "+ca;
 
-  setTimeout(eliminarCombos,100);
+  if(validar){
+    setTimeout(()=>{
+      if(!hayCombo()){
+        // devolver si no hay combo
+        intercambiar(a,b,false);
+        vidas--;
+        updateUI();
+      }else{
+        eliminarCombos();
+      }
+    },150);
+  }
 }
 
-function eliminarCombos(){
+function hayCombo(){
+  return buscarCombos().length>0;
+}
+
+function buscarCombos(){
   let encontrados=[];
 
   for(let i=0;i<64;i++){
@@ -137,6 +161,9 @@ function eliminarCombos(){
       if(c && c===getColor(i+1)&&c===getColor(i+2)){
         encontrados.push(i,i+1,i+2);
       }
+      if(c && c===getColor(i+1)&&c===getColor(i+2)&&c===getColor(i+3)){
+        grid[i].classList.add("bomba");
+      }
     }
 
     if(i<48){
@@ -144,25 +171,26 @@ function eliminarCombos(){
       if(c && c===getColor(i+width)&&c===getColor(i+width*2)){
         encontrados.push(i,i+width,i+width*2);
       }
+      if(c && c===getColor(i+width)&&c===getColor(i+width*2)&&c===getColor(i+width*3)){
+        grid[i].classList.add("bomba");
+      }
     }
   }
 
-  encontrados=[...new Set(encontrados)];
+  return [...new Set(encontrados)];
+}
+
+function eliminarCombos(){
+  let encontrados=buscarCombos();
 
   if(encontrados.length===0){
-    vidas--;
-    guardarDatos();
-    updateUI();
-
-    if(vidas<=0){
-      guardarRanking();
-      alert("💀 Game Over");
-      reiniciar();
-    }
     return;
   }
 
   encontrados.forEach(i=>{
+    if(grid[i].classList.contains("bomba")){
+      explotarBomba(i);
+    }
     grid[i].className="celda eliminado";
     score+=10;
   });
@@ -170,13 +198,24 @@ function eliminarCombos(){
   if(score>=objetivo){
     nivel++;
     objetivo+=100;
-    crearTablero();
   }
 
   guardarDatos();
   updateUI();
 
   setTimeout(caer,200);
+}
+
+function explotarBomba(i){
+  let fila=Math.floor(i/width);
+  let col=i%width;
+
+  for(let x=0;x<width;x++){
+    grid[fila*width+x].className="celda eliminado";
+  }
+  for(let y=0;y<width;y++){
+    grid[y*width+col].className="celda eliminado";
+  }
 }
 
 function caer(){
@@ -195,7 +234,11 @@ function caer(){
     }
   }
 
-  setTimeout(eliminarCombos,200);
+  setTimeout(()=>{
+    if(hayCombo()){
+      eliminarCombos(); // 🔥 combos en cadena
+    }
+  },200);
 }
 
 function getColor(i){
@@ -222,12 +265,9 @@ function reiniciar(){
 
 function guardarRanking(){
   let ranking=JSON.parse(localStorage.getItem("ranking"))||[];
-
   ranking.push({jugador,score});
-
   ranking.sort((a,b)=>b.score-a.score);
   ranking=ranking.slice(0,5);
-
   localStorage.setItem("ranking",JSON.stringify(ranking));
   mostrarRanking();
 }
