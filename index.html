@@ -2,6 +2,454 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<title>MI GTA PRO MAX</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body { margin:0; overflow:hidden; background:#111; }
+canvas { display:block; }
+
+#joystickBase {
+  position:absolute; bottom:40px; left:40px;
+  width:140px; height:140px;
+  background:rgba(255,255,255,0.1);
+  border-radius:50%;
+}
+
+#joystick {
+  position:absolute;
+  width:70px; height:70px;
+  background:cyan;
+  border-radius:50%;
+  left:35px; top:35px;
+}
+
+#shootBtn {
+  position:absolute;
+  bottom:60px; right:40px;
+  width:80px; height:80px;
+  background:red;
+  border-radius:50%;
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+#carBtn {
+  position:absolute;
+  bottom:160px;
+  right:40px;
+  width:80px;
+  height:50px;
+  background:#0af;
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:10px;
+}
+
+#money {
+  position:absolute;
+  top:20px;
+  left:20px;
+  color:#0f0;
+  font-weight:bold;
+}
+
+#hp {
+  position:absolute;
+  top:50px;
+  left:20px;
+  color:red;
+  font-weight:bold;
+}
+
+#mission {
+  position:absolute;
+  top:80px;
+  left:20px;
+  color:white;
+}
+</style>
+</head>
+
+<body>
+
+<div id="joystickBase"><div id="joystick"></div></div>
+<div id="shootBtn">FIRE</div>
+<div id="carBtn">CAR</div>
+<div id="money">$0</div>
+<div id="hp">❤️100</div>
+<div id="mission">🎯 Gana $100</div>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+canvas.width = innerWidth;
+canvas.height = innerHeight;
+
+let world = { width:3000, height:3000 };
+let camera = { x:0, y:0 };
+
+let money = 0;
+let wanted = 0;
+let time = 0;
+let health = 100;
+
+let mission = {
+  goal:100,
+  reward:200,
+  active:true
+};
+
+// sonidos
+let shootSound = new Audio("https://actions.google.com/sounds/v1/impacts/metal_hit.ogg");
+let moneySound = new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg");
+
+// PLAYER
+let player = {
+  x:1500, y:1500,
+  size:30,
+  speed:220,
+  inCar:false
+};
+
+// CARRO
+let car = {
+  x:1600, y:1500,
+  width:60,
+  height:30,
+  speed:400
+};
+
+// CASAS
+let houses=[];
+for(let i=0;i<20;i++){
+  houses.push({
+    x:Math.random()*world.width,
+    y:Math.random()*world.height,
+    w:80,h:80
+  });
+}
+
+// NPC
+let npcs=[];
+for(let i=0;i<6;i++){
+  npcs.push({
+    x:Math.random()*world.width,
+    y:Math.random()*world.height,
+    size:25,
+    speed:70
+  });
+}
+
+// POLICIA
+let police=[];
+for(let i=0;i<3;i++){
+  police.push({
+    x:Math.random()*world.width,
+    y:Math.random()*world.height,
+    size:28,
+    speed:120
+  });
+}
+
+let bullets=[];
+
+// GUARDADO
+function save(){
+  localStorage.setItem("gta_save", JSON.stringify({
+    money,wanted,health
+  }));
+}
+
+function load(){
+  let data = JSON.parse(localStorage.getItem("gta_save"));
+  if(data){
+    money=data.money||0;
+    wanted=data.wanted||0;
+    health=data.health||100;
+  }
+}
+load();
+
+// JOYSTICK
+let joystick=document.getElementById("joystick");
+let base=document.getElementById("joystickBase");
+
+let dragging=false,inputX=0,inputY=0;
+
+base.addEventListener("touchstart",()=>dragging=true);
+
+base.addEventListener("touchmove",e=>{
+  if(!dragging)return;
+
+  let t=e.touches[0];
+  let r=base.getBoundingClientRect();
+
+  let x=t.clientX-r.left-70;
+  let y=t.clientY-r.top-70;
+
+  let d=Math.sqrt(x*x+y*y);
+  let max=50;
+
+  if(d>max){x=(x/d)*max;y=(y/d)*max;}
+
+  joystick.style.left=(x+35)+"px";
+  joystick.style.top=(y+35)+"px";
+
+  inputX=x/max;
+  inputY=y/max;
+
+  if(Math.abs(inputX)<0.05) inputX=0;
+  if(Math.abs(inputY)<0.05) inputY=0;
+});
+
+base.addEventListener("touchend",()=>{
+  dragging=false;
+  inputX=0;inputY=0;
+  joystick.style.left="35px";
+  joystick.style.top="35px";
+});
+
+// CARRO
+document.getElementById("carBtn").addEventListener("touchstart",()=>{
+  let d=Math.hypot(player.x-car.x,player.y-car.y);
+  if(d<80){
+    player.inCar=!player.inCar;
+  }
+});
+
+// DISPARO
+document.getElementById("shootBtn").addEventListener("touchstart",()=>{
+
+  shootSound.currentTime=0;
+  shootSound.play();
+
+  let target=null,min=9999;
+
+  [...npcs,...police].forEach(e=>{
+    let d=Math.hypot(player.x-e.x,player.y-e.y);
+    if(d<min){min=d;target=e;}
+  });
+
+  let dx=inputX,dy=inputY;
+
+  if(target && min<400){
+    dx=target.x-player.x;
+    dy=target.y-player.y;
+  }
+
+  let len=Math.hypot(dx,dy)||1;
+
+  bullets.push({
+    x:player.x,
+    y:player.y,
+    vx:(dx/len)*600,
+    vy:(dy/len)*600
+  });
+});
+
+// LOOP
+let last=0;
+function loop(t){
+  let dt=(t-last)/1000;
+  last=t;
+
+  update(dt);
+  draw();
+
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// UPDATE
+function update(dt){
+
+  time+=dt;
+
+  if(player.inCar){
+    car.x+=inputX*car.speed*dt;
+    car.y+=inputY*car.speed*dt;
+    player.x=car.x;
+    player.y=car.y;
+  }else{
+    player.x+=inputX*player.speed*dt;
+    player.y+=inputY*player.speed*dt;
+  }
+
+  player.x=Math.max(0,Math.min(world.width,player.x));
+  player.y=Math.max(0,Math.min(world.height,player.y));
+
+  camera.x+=((player.x-canvas.width/2)-camera.x)*0.1;
+  camera.y+=((player.y-canvas.height/2)-camera.y)*0.1;
+
+  // daño
+  npcs.forEach(n=>{
+    let d=Math.hypot(player.x-n.x,player.y-n.y);
+    if(d<30){health-=20*dt;}
+  });
+
+  police.forEach(p=>{
+    let d=Math.hypot(player.x-p.x,player.y-p.y);
+    if(d<35){health-=40*dt;}
+  });
+
+  // IA
+  npcs.forEach(n=>{
+    let d=Math.hypot(player.x-n.x,player.y-n.y);
+    if(d<200){moveToPlayer(n,dt);}
+    else{
+      n.x+=Math.sin(time+n.x)*10*dt;
+      n.y+=Math.cos(time+n.y)*10*dt;
+    }
+  });
+
+  police.forEach(p=>{
+    if(wanted>0){
+      moveToPlayer(p,dt,2+wanted);
+    }
+  });
+
+  // balas
+  bullets.forEach(b=>{
+    b.x+=b.vx*dt;
+    b.y+=b.vy*dt;
+  });
+
+  bullets=bullets.filter(b=>
+    b.x>0&&b.y>0&&b.x<world.width&&b.y<world.height
+  );
+
+  // colisiones
+  for(let bi=bullets.length-1;bi>=0;bi--){
+    let b=bullets[bi];
+
+    for(let ni=npcs.length-1;ni>=0;ni--){
+      if(hit(b,npcs[ni])){
+        npcs.splice(ni,1);
+        bullets.splice(bi,1);
+        money+=10;
+        wanted+=0.2;
+
+        moneySound.currentTime=0;
+        moneySound.play();
+        break;
+      }
+    }
+
+    for(let pi=police.length-1;pi>=0;pi--){
+      if(hit(b,police[pi])){
+        police.splice(pi,1);
+        bullets.splice(bi,1);
+        money+=50;
+        wanted+=0.5;
+
+        moneySound.currentTime=0;
+        moneySound.play();
+        break;
+      }
+    }
+  }
+
+  wanted-=dt*0.05;
+  if(wanted<0) wanted=0;
+
+  // misión
+  if(mission.active && money>=mission.goal){
+    money+=mission.reward;
+    alert("🎉 MISIÓN COMPLETADA +$"+mission.reward);
+
+    mission.goal+=100;
+    mission.reward+=150;
+  }
+
+  if(health<=0){
+    alert("💀 GAME OVER");
+    localStorage.removeItem("gta_save");
+    location.reload();
+  }
+
+  document.getElementById("money").innerText="$"+money+" ⭐"+wanted.toFixed(1);
+  document.getElementById("hp").innerText="❤️"+Math.floor(health);
+  document.getElementById("mission").innerText="🎯 Gana $"+mission.goal;
+
+  save();
+}
+
+// IA
+function moveToPlayer(e,dt,boost=1){
+  let dx=player.x-e.x;
+  let dy=player.y-e.y;
+  let d=Math.sqrt(dx*dx+dy*dy);
+  if(d>2){
+    e.x+=(dx/d)*e.speed*boost*dt;
+    e.y+=(dy/d)*e.speed*boost*dt;
+  }
+}
+
+// HIT
+function hit(a,b){
+  return a.x<b.x+b.size &&
+         a.x+5>b.x &&
+         a.y<b.y+b.size &&
+         a.y+5>b.y;
+}
+
+// MAPA
+function drawMap(){
+  for(let x=0;x<world.width;x+=100){
+    for(let y=0;y<world.height;y+=100){
+      ctx.strokeStyle="#222";
+      ctx.strokeRect(x-camera.x,y-camera.y,100,100);
+    }
+  }
+}
+
+// DRAW
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  drawMap();
+
+  ctx.fillStyle="#555";
+  houses.forEach(h=>{
+    ctx.fillRect(h.x-camera.x,h.y-camera.y,h.w,h.h);
+  });
+
+  ctx.fillStyle="gray";
+  ctx.fillRect(car.x-camera.x,car.y-camera.y,car.width,car.height);
+
+  ctx.fillStyle="cyan";
+  ctx.fillRect(player.x-camera.x,player.y-camera.y,player.size,player.size);
+
+  ctx.fillStyle="orange";
+  npcs.forEach(n=>{
+    ctx.fillRect(n.x-camera.x,n.y-camera.y,n.size,n.size);
+  });
+
+  ctx.fillStyle="blue";
+  police.forEach(p=>{
+    ctx.fillRect(p.x-camera.x,p.y-camera.y,p.size,p.size);
+  });
+
+  ctx.fillStyle="yellow";
+  bullets.forEach(b=>{
+    ctx.fillRect(b.x-camera.x,b.y-camera.y,5,5);
+  });
+}
+</script>
+
+</body>
+</html><!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
 <title>Mini Candy GOD ULTRA PRO 😈</title>
 
 <style>
@@ -298,3 +746,4 @@ mostrarRanking();
 
 </body>
 </html>
+
