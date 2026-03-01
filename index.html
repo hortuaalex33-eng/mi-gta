@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>MI GTA PRO MAX FASE FINAL 😈🔥</title>
+<title>GTA PRO MAX ULTRA</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -16,43 +16,30 @@ canvas { display:block; }
   border-radius:50%;
 }
 #joystick {
-  position:absolute;
-  width:70px; height:70px;
-  background:cyan;
-  border-radius:50%;
+  position:absolute; width:70px; height:70px;
+  background:cyan; border-radius:50%;
   left:35px; top:35px;
 }
 
-#shootBtn, #carBtn {
-  position:absolute;
-  right:40px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+#shootBtn {
+  position:absolute; bottom:60px; right:40px;
+  width:80px; height:80px;
+  background:red; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
   color:white;
 }
 
-#shootBtn {
-  bottom:60px;
-  width:80px; height:80px;
-  background:red;
-  border-radius:50%;
-}
 #carBtn {
-  bottom:160px;
+  position:absolute; bottom:160px; right:40px;
   width:80px; height:50px;
-  background:#0af;
-  border-radius:10px;
+  background:#0af; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  color:white;
 }
 
-#money, #hp, #mission {
-  position:absolute;
-  left:20px;
-  font-weight:bold;
-}
-#money { top:20px; color:#0f0; }
-#hp { top:50px; color:red; }
-#mission { top:80px; color:white; }
+#money,#hp { position:absolute; left:20px; font-weight:bold; }
+#money{top:20px;color:#0f0;}
+#hp{top:50px;color:red;}
 </style>
 </head>
 
@@ -63,77 +50,105 @@ canvas { display:block; }
 <div id="carBtn">CAR</div>
 <div id="money">$0</div>
 <div id="hp">❤️100</div>
-<div id="mission">🎯 $100</div>
 
 <canvas id="game"></canvas>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
-
 canvas.width = innerWidth;
 canvas.height = innerHeight;
 
-// MUNDO
-let world = { width:3000, height:3000 };
-let camera = { x:0, y:0 };
+// 🔊 activar audio
+document.body.addEventListener("touchstart",()=>{
+  shootSound.play().catch(()=>{});
+},{once:true});
+
+let world={width:5000,height:5000};
+let camera={x:0,y:0};
+let money=0,health=100;
 
 // PLAYER
-let player = { x:1500,y:1500,size:30,speed:220,inCar:false };
+let player={x:2500,y:2500,size:30};
 
-// CARRO PRO 🚗
-let car = { x:1600,y:1500,width:60,height:30,speed:420,angle:0 };
+// CARRO
+let car={x:2600,y:2500,speed:0,max:350};
+let inCar=false;
 
-// ESTADO
-let money=0, health=100;
-let message="", messageTime=0;
-
-// MISIONES 🎯
-let mission = { goal:100, reward:200, active:true };
-
-// ENTIDADES
-let npcs=[], bullets=[], particles=[];
-
-for(let i=0;i<8;i++){
-  npcs.push({x:Math.random()*3000,y:Math.random()*3000,size:25});
+// MAPA CALLES (GRID)
+let roads=[];
+for(let x=0;x<world.width;x+=300){
+  roads.push({x:x,y:0,w:60,h:world.height});
+}
+for(let y=0;y<world.height;y+=300){
+  roads.push({x:0,y:y,w:world.width,h:60});
 }
 
-// JOYSTICK PRO
-let joystick=document.getElementById("joystick");
+// CASAS (bloques)
+let houses=[];
+for(let x=0;x<world.width;x+=300){
+  for(let y=0;y<world.height;y+=300){
+    houses.push({x:x+80,y:y+80,w:140,h:140});
+  }
+}
+
+// NPCs
+let npcs=[];
+for(let i=0;i<20;i++){
+  npcs.push({
+    x:Math.random()*world.width,
+    y:Math.random()*world.height,
+    vx:(Math.random()-0.5)*100,
+    vy:(Math.random()-0.5)*100
+  });
+}
+
+let bullets=[];
+let particles=[];
+
+// sonidos
+let shootSound=new Audio("https://actions.google.com/sounds/v1/impacts/metal_hit.ogg");
+
+// joystick
+let joy=document.getElementById("joystick");
 let base=document.getElementById("joystickBase");
 let dragging=false,inputX=0,inputY=0;
 
 base.addEventListener("touchstart",()=>dragging=true);
 base.addEventListener("touchmove",e=>{
-  let t=e.touches[0], r=base.getBoundingClientRect();
-  let x=t.clientX-r.left-70, y=t.clientY-r.top-70;
-  let d=Math.hypot(x,y), max=50;
+  let t=e.touches[0],r=base.getBoundingClientRect();
+  let x=t.clientX-r.left-70,y=t.clientY-r.top-70;
+  let d=Math.hypot(x,y),max=50;
   if(d>max){x=(x/d)*max;y=(y/d)*max;}
-  joystick.style.left=(x+35)+"px";
-  joystick.style.top=(y+35)+"px";
+  joy.style.left=(x+35)+"px";
+  joy.style.top=(y+35)+"px";
   inputX=x/max; inputY=y/max;
 });
 base.addEventListener("touchend",()=>{
   dragging=false; inputX=0; inputY=0;
-  joystick.style.left="35px"; joystick.style.top="35px";
+  joy.style.left="35px"; joy.style.top="35px";
 });
 
-// ENTRAR CARRO
-document.getElementById("carBtn").onclick=()=>{
-  let d=Math.hypot(player.x-car.x,player.y-car.y);
-  if(d<80) player.inCar=!player.inCar;
-};
-
 // DISPARO
-document.getElementById("shootBtn").onclick=()=>{
-  let len=Math.hypot(inputX,inputY)||1;
+document.getElementById("shootBtn").addEventListener("touchstart",()=>{
+  shootSound.currentTime=0; shootSound.play();
+
+  let dx=inputX||1,dy=inputY||0;
+  let len=Math.hypot(dx,dy)||1;
+
   bullets.push({
     x:player.x,
     y:player.y,
-    vx:(inputX/len)*600,
-    vy:(inputY/len)*600
+    vx:(dx/len)*900,
+    vy:(dy/len)*900
   });
-};
+});
+
+// CARRO
+document.getElementById("carBtn").addEventListener("touchstart",()=>{
+  let d=Math.hypot(player.x-car.x,player.y-car.y);
+  if(d<100) inCar=!inCar;
+});
 
 // LOOP
 let last=0;
@@ -149,18 +164,31 @@ requestAnimationFrame(loop);
 // UPDATE
 function update(dt){
 
-  if(player.inCar){
-    car.angle = Math.atan2(inputY,inputX);
-    car.x+=Math.cos(car.angle)*car.speed*dt;
-    car.y+=Math.sin(car.angle)*car.speed*dt;
+  // movimiento
+  if(inCar){
+    car.speed+=inputY*600*dt;
+    car.speed*=0.98;
+    car.x+=inputX*car.speed*dt;
+    car.y+=car.speed*dt;
     player.x=car.x; player.y=car.y;
-  } else {
-    player.x+=inputX*player.speed*dt;
-    player.y+=inputY*player.speed*dt;
+  }else{
+    player.x+=inputX*200*dt;
+    player.y+=inputY*200*dt;
   }
 
   camera.x+=((player.x-canvas.width/2)-camera.x)*0.1;
   camera.y+=((player.y-canvas.height/2)-camera.y)*0.1;
+
+  // IA movimiento
+  npcs.forEach(n=>{
+    n.x+=n.vx*dt;
+    n.y+=n.vy*dt;
+
+    if(Math.random()<0.01){
+      n.vx=(Math.random()-0.5)*100;
+      n.vy=(Math.random()-0.5)*100;
+    }
+  });
 
   // balas
   bullets.forEach(b=>{
@@ -169,93 +197,78 @@ function update(dt){
   });
 
   // colisiones
-  for(let bi=bullets.length-1;bi>=0;bi--){
-    for(let ni=npcs.length-1;ni>=0;ni--){
-      if(hit(bullets[bi],npcs[ni])){
-        npcs.splice(ni,1);
-        bullets.splice(bi,1);
-        money+=10;
+  for(let i=npcs.length-1;i>=0;i--){
+    for(let j=bullets.length-1;j>=0;j--){
+      if(Math.hypot(npcs[i].x-bullets[j].x,npcs[i].y-bullets[j].y)<20){
+
+        // explosión
+        for(let k=0;k<15;k++){
+          particles.push({
+            x:npcs[i].x,
+            y:npcs[i].y,
+            vx:(Math.random()-0.5)*300,
+            vy:(Math.random()-0.5)*300,
+            life:1
+          });
+        }
+
+        npcs.splice(i,1);
+        bullets.splice(j,1);
+        money+=20;
+        break;
       }
     }
   }
 
-  // misión
-  if(mission.active && money>=mission.goal){
-    mission.active=false;
-    money+=mission.reward;
-    message="🎉 +" + mission.reward;
-    messageTime=2;
-
-    setTimeout(()=>{
-      mission.goal+=100;
-      mission.reward+=150;
-      mission.active=true;
-    },1000);
-  }
+  // partículas
+  particles.forEach(p=>{
+    p.x+=p.vx*dt;
+    p.y+=p.vy*dt;
+    p.life-=dt;
+  });
+  particles=particles.filter(p=>p.life>0);
 
   document.getElementById("money").innerText="$"+money;
   document.getElementById("hp").innerText="❤️"+Math.floor(health);
-  document.getElementById("mission").innerText="🎯 $"+mission.goal;
-
-  if(messageTime>0) messageTime-=dt;
 }
 
 // DRAW
 function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  // MAPA TIPO CIUDAD 🗺️
-  ctx.fillStyle="#2f2f2f";
-  ctx.fillRect(-camera.x,1400-camera.y,3000,200); // calle horizontal
-  ctx.fillRect(1400-camera.x,-camera.y,200,3000); // calle vertical
+  // calles
+  ctx.fillStyle="#333";
+  roads.forEach(r=>{
+    ctx.fillRect(r.x-camera.x,r.y-camera.y,r.w,r.h);
+  });
 
-  // ROTONDA
-  ctx.beginPath();
-  ctx.arc(1500-camera.x,1500-camera.y,120,0,Math.PI*2);
-  ctx.fill();
+  // casas
+  ctx.fillStyle="#555";
+  houses.forEach(h=>{
+    ctx.fillRect(h.x-camera.x,h.y-camera.y,h.w,h.h);
+  });
 
-  ctx.fillStyle="#7ec850";
-  ctx.beginPath();
-  ctx.arc(1500-camera.x,1500-camera.y,60,0,Math.PI*2);
-  ctx.fill();
-
-  // PLAYER
+  // player
   ctx.fillStyle="cyan";
   ctx.fillRect(player.x-camera.x,player.y-camera.y,30,30);
 
-  // CARRO 🚗
-  ctx.save();
-  ctx.translate(car.x-camera.x,car.y-camera.y);
-  ctx.rotate(car.angle);
-  ctx.fillStyle="blue";
-  ctx.fillRect(-30,-15,60,30);
-  ctx.restore();
-
-  // NPC
+  // npcs
   ctx.fillStyle="orange";
   npcs.forEach(n=>{
     ctx.fillRect(n.x-camera.x,n.y-camera.y,25,25);
   });
 
-  // BALAS
+  // balas
   ctx.fillStyle="yellow";
   bullets.forEach(b=>{
     ctx.fillRect(b.x-camera.x,b.y-camera.y,5,5);
   });
 
-  // MENSAJE
-  if(messageTime>0){
-    ctx.fillStyle="white";
-    ctx.font="30px Arial";
-    ctx.fillText(message, canvas.width/2-100,100);
-  }
-}
-
-function hit(a,b){
-  return a.x<b.x+b.size &&
-         a.x+5>b.x &&
-         a.y<b.y+b.size &&
-         a.y+5>b.y;
+  // partículas
+  ctx.fillStyle="red";
+  particles.forEach(p=>{
+    ctx.fillRect(p.x-camera.x,p.y-camera.y,4,4);
+  });
 }
 </script>
 
