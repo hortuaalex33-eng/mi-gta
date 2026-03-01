@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>MI GTA PRO MAX</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body { margin:0; overflow:hidden; background:#111; }
+canvas { display:block; }
+
+#joystickBase {
+  position:absolute; bottom:40px; left:40px;
+  width:140px; height:140px;
+  background:rgba(255,255,255,0.1);
+  border-radius:50%;
+}
+
+#joystick {
+  position:absolute;
+  width:70px; height:70px;
+  background:cyan;
+  border-radius:50%;
+  left:35px; top:35px;
+}
+
+#shootBtn {
+  position:absolute;
+  bottom:60px; right:40px;
+  width:80px; height:80px;
+  background:red;
+  border-radius:50%;
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+#carBtn {
+  position:absolute;
+  bottom:160px;
+  right:40px;
+  width:80px;
+  height:50px;
+  background:#0af;
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:10px;
+}
+
+#money, #hp, #mission {
+  position:absolute;
+  left:20px;
+  font-weight:bold;
+}
+#money { top:20px; color:#0f0; }
+#hp { top:50px; color:red; }
+#mission { top:80px; color:white; }
+</style>
+</head>
+
+<body>
+
+<div id="joystickBase"><div id="joystick"></div></div>
+<div id="shootBtn">FIRE</div>
+<div id="carBtn">CAR</div>
+<div id="money">$0</div>
+<div id="hp">❤️100</div>
+<div id="mission">🎯 Gana $100</div>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+canvas.width = innerWidth;
+canvas.height = innerHeight;
+
+let world = { width:3000, height:3000 };
+let camera = { x:0, y:0 };
+
+let money = 0, wanted = 0, time = 0, health = 100;
+
+// MENSAJES
+let message = "", messageTime = 0;
+function showMessage(txt){
+  message = txt;
+  messageTime = 2;
+}
+
+// PARTÍCULAS
+let particles = [];
+
+let mission = { goal:100, reward:200, active:true };
+
+// sonidos
+let shootSound = new Audio("https://actions.google.com/sounds/v1/impacts/metal_hit.ogg");
+let moneySound = new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg");
+
+// PLAYER
+let player = { x:1500,y:1500,size:30,speed:220,inCar:false };
+
+// CARRO
+let car = { x:1600,y:1500,width:60,height:30,speed:400 };
+
+// CASAS
+let houses=[];
+for(let i=0;i<20;i++){
+  houses.push({x:Math.random()*world.width,y:Math.random()*world.height,w:80,h:80});
+}
+
+// NPC
+let npcs=[];
+for(let i=0;i<6;i++){
+  npcs.push({x:Math.random()*world.width,y:Math.random()*world.height,size:25,speed:70});
+}
+
+// POLICIA
+let police=[];
+for(let i=0;i<3;i++){
+  police.push({x:Math.random()*world.width,y:Math.random()*world.height,size:28,speed:120});
+}
+
+let bullets=[];
+
+// SAVE
+function save(){
+  localStorage.setItem("gta_save", JSON.stringify({money,wanted,health}));
+}
+function load(){
+  let d=JSON.parse(localStorage.getItem("gta_save"));
+  if(d){money=d.money||0;wanted=d.wanted||0;health=d.health||100;}
+}
+load();
+
+// JOYSTICK
+let joystick=document.getElementById("joystick");
+let base=document.getElementById("joystickBase");
+let dragging=false,inputX=0,inputY=0;
+
+base.addEventListener("touchstart",()=>dragging=true);
+base.addEventListener("touchmove",e=>{
+  if(!dragging)return;
+  let t=e.touches[0], r=base.getBoundingClientRect();
+  let x=t.clientX-r.left-70, y=t.clientY-r.top-70;
+  let d=Math.hypot(x,y), max=50;
+  if(d>max){x=(x/d)*max;y=(y/d)*max;}
+  joystick.style.left=(x+35)+"px";
+  joystick.style.top=(y+35)+"px";
+  inputX=x/max; inputY=y/max;
+});
+base.addEventListener("touchend",()=>{
+  dragging=false; inputX=0; inputY=0;
+  joystick.style.left="35px"; joystick.style.top="35px";
+});
+
+// CARRO
+document.getElementById("carBtn").addEventListener("touchstart",()=>{
+  let d=Math.hypot(player.x-car.x,player.y-car.y);
+  if(d<80) player.inCar=!player.inCar;
+});
+
+// DISPARO
+document.getElementById("shootBtn").addEventListener("touchstart",()=>{
+
+  if(navigator.vibrate) navigator.vibrate(50);
+
+  shootSound.currentTime=0;
+  shootSound.play();
+
+  let dx=inputX||1, dy=inputY||0;
+  let len=Math.hypot(dx,dy)||1;
+
+  bullets.push({
+    x:player.x,
+    y:player.y,
+    vx:(dx/len)*600,
+    vy:(dy/len)*600
+  });
+});
+
+// LOOP
+let last=0;
+function loop(t){
+  let dt=(t-last)/1000;
+  last=t;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// UPDATE
+function update(dt){
+
+  time+=dt;
+
+  if(player.inCar){
+    car.x+=inputX*car.speed*dt;
+    car.y+=inputY*car.speed*dt;
+    player.x=car.x; player.y=car.y;
+  }else{
+    player.x+=inputX*player.speed*dt;
+    player.y+=inputY*player.speed*dt;
+  }
+
+  camera.x+=((player.x-canvas.width/2)-camera.x)*0.1;
+  camera.y+=((player.y-canvas.height/2)-camera.y)*0.1;
+
+  // daño
+  npcs.forEach(n=>{
+    if(Math.hypot(player.x-n.x,player.y-n.y)<30) health-=20*dt;
+  });
+
+  // partículas update
+  particles.forEach(p=>{
+    p.x+=p.vx*dt;
+    p.y+=p.vy*dt;
+    p.life-=dt;
+  });
+  particles=particles.filter(p=>p.life>0);
+
+  // balas
+  bullets.forEach(b=>{
+    b.x+=b.vx*dt;
+    b.y+=b.vy*dt;
+  });
+
+  // colisiones
+  for(let bi=bullets.length-1;bi>=0;bi--){
+    let b=bullets[bi];
+
+    for(let ni=npcs.length-1;ni>=0;ni--){
+      if(hit(b,npcs[ni])){
+        // partículas 💥
+        for(let i=0;i<10;i++){
+          particles.push({
+            x:npcs[ni].x,
+            y:npcs[ni].y,
+            vx:(Math.random()-0.5)*200,
+            vy:(Math.random()-0.5)*200,
+            life:1
+          });
+        }
+
+        npcs.splice(ni,1);
+        bullets.splice(bi,1);
+        money+=10;
+
+        moneySound.currentTime=0;
+        moneySound.play();
+        break;
+      }
+    }
+  }
+
+  // misión FIX 🔥
+  if(mission.active && money>=mission.goal){
+    mission.active=false;
+    money+=mission.reward;
+    showMessage("🎉 +$"+mission.reward);
+
+    setTimeout(()=>{
+      mission.goal+=100;
+      mission.reward+=150;
+      mission.active=true;
+    },1000);
+  }
+
+  // UI
+  document.getElementById("money").innerText="$"+money;
+  document.getElementById("hp").innerText="❤️"+Math.floor(health);
+  document.getElementById("mission").innerText="🎯 $"+mission.goal;
+
+  if(messageTime>0) messageTime-=dt;
+
+  if(health<=0){
+    showMessage("💀 GAME OVER");
+    setTimeout(()=>location.reload(),1500);
+  }
+
+  save();
+}
+
+// DRAW
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // mapa
+  for(let x=0;x<world.width;x+=100){
+    for(let y=0;y<world.height;y+=100){
+      ctx.strokeStyle="#222";
+      ctx.strokeRect(x-camera.x,y-camera.y,100,100);
+    }
+  }
+
+  // casas
+  ctx.fillStyle="#555";
+  houses.forEach(h=>{
+    ctx.fillRect(h.x-camera.x,h.y-camera.y,h.w,h.h);
+  });
+
+  // player
+  ctx.fillStyle="cyan";
+  ctx.fillRect(player.x-camera.x,player.y-camera.y,player.size,player.size);
+
+  // npcs
+  ctx.fillStyle="orange";
+  npcs.forEach(n=>{
+    ctx.fillRect(n.x-camera.x,n.y-camera.y,n.size,n.size);
+  });
+
+  // balas
+  ctx.fillStyle="yellow";
+  bullets.forEach(b=>{
+    ctx.fillRect(b.x-camera.x,b.y-camera.y,5,5);
+  });
+
+  // partículas 💥
+  ctx.fillStyle="red";
+  particles.forEach(p=>{
+    ctx.fillRect(p.x-camera.x,p.y-camera.y,4,4);
+  });
+
+  // mensaje
+  if(messageTime>0){
+    ctx.fillStyle="white";
+    ctx.font="30px Arial";
+    ctx.fillText(message, canvas.width/2-100, 100);
+  }
+}
+
+// HIT
+function hit(a,b){
+  return a.x<b.x+b.size &&
+         a.x+5>b.x &&
+         a.y<b.y+b.size &&
+         a.y+5>b.y;
+}
+</script>
+
+</body>
+</html>
