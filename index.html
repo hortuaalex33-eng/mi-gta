@@ -229,12 +229,12 @@ function update(dt){
 
  }
  // CAMARA
- camera.x+=((player.x-canvas.width/2)-camera.x)*0.1;
- camera.y+=((player.y-canvas.height/2)-camera.y)*0.1;
+ camera.x += ((player.x - canvas.width/2) - camera.x) * 0.1;
+camera.y += ((player.y - canvas.height/2) - camera.y) * 0.1;
 
  // UI
- document.getElementById("hp").innerText="❤️ "+Math.floor(health);
- document.getElementById("wanted").innerText="⭐ "+wanted.toFixed(1);
+ document.getElementById("hp").innerText = "❤️ " + Math.floor(health);
+document.getElementById("wanted").innerText = "⭐ " + wanted.toFixed(1);
 }
 
 // DRAW
@@ -288,6 +288,7 @@ function draw(){
 </body>
 
 </html>
+
 
 
 
