@@ -1,1 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>GTA PRO MAX WAR 😈💀🐺</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<style>
+body { margin:0; overflow:hidden; background:#111; }
+canvas { display:block; }
+
+#joystickBase {position:absolute; bottom:40px; left:40px; width:140px; height:140px; background:rgba(255,255,255,0.1); border-radius:50%;}
+#joystick {position:absolute; width:70px; height:70px; background:cyan; border-radius:50%; left:35px; top:35px;}
+#shootBtn {position:absolute; bottom:60px; right:40px; width:80px; height:80px; background:red; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white;}
+</style>
+</head>
+
+<body>
+
+<div id="joystickBase"><div id="joystick"></div></div>
+<div id="shootBtn">FIRE</div>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+canvas.width=innerWidth;
+canvas.height=innerHeight;
+
+let world={width:6000,height:6000};
+let camera={x:0,y:0};
+
+// PLAYER
+let player={x:3000,y:3000};
+
+// "MULTIJUGADOR FAKE"
+let enemyPlayer={x:2800,y:2800};
+
+// NPCs
+let npcs=[];
+for(let i=0;i<20;i++){
+ npcs.push({
+  x:Math.random()*world.width,
+  y:Math.random()*world.height,
+  shootTimer:0
+ });
+}
+
+// BALAS
+let bullets=[];
+let enemyBullets=[];
+
+// JOYSTICK
+let joy=document.getElementById("joystick");
+let base=document.getElementById("joystickBase");
+let inputX=0,inputY=0;
+
+base.addEventListener("touchmove",e=>{
+ let t=e.touches[0],r=base.getBoundingClientRect();
+ let x=t.clientX-r.left-70,y=t.clientY-r.top-70;
+ let d=Math.hypot(x,y),max=50;
+ if(d>max){x=(x/d)*max;y=(y/d)*max;}
+ joy.style.left=(x+35)+"px";
+ joy.style.top=(y+35)+"px";
+ inputX=x/max; inputY=y/max;
+});
+
+base.addEventListener("touchend",()=>{
+ inputX=0;inputY=0;
+ joy.style.left="35px";
+ joy.style.top="35px";
+});
+
+// DISPARO PLAYER
+document.getElementById("shootBtn").addEventListener("touchstart",()=>{
+ bullets.push({
+  x:player.x,
+  y:player.y,
+  vx:(inputX||1)*800,
+  vy:(inputY||0)*800
+ });
+});
+
+// LOOP
+let last=0;
+function loop(t){
+ let dt=(t-last)/1000;
+ last=t;
+ update(dt);
+ draw();
+ requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// UPDATE
+function update(dt){
+
+ // PLAYER
+ player.x+=inputX*300*dt;
+ player.y+=inputY*300*dt;
+
+ // ENEMY PLAYER (IA)
+ let dx=player.x-enemyPlayer.x;
+ let dy=player.y-enemyPlayer.y;
+ let d=Math.hypot(dx,dy)||1;
+
+ enemyPlayer.x+=dx/d*150*dt;
+ enemyPlayer.y+=dy/d*150*dt;
+
+ // DISPARO ENEMY PLAYER
+ if(Math.random()<0.02){
+  enemyBullets.push({
+   x:enemyPlayer.x,
+   y:enemyPlayer.y,
+   vx:dx/d*600,
+   vy:dy/d*600
+  });
+ }
+
+ // NPCs DISPARAN
+ npcs.forEach(n=>{
+  let dx=player.x-n.x;
+  let dy=player.y-n.y;
+  let d=Math.hypot(dx,dy)||1;
+
+  n.shootTimer-=dt;
+
+  if(d<500){
+   n.x+=dx/d*100*dt;
+   n.y+=dy/d*100*dt;
+
+   if(n.shootTimer<=0){
+    enemyBullets.push({
+     x:n.x,
+     y:n.y,
+     vx:dx/d*700,
+     vy:dy/d*700
+    });
+    n.shootTimer=1.5;
+   }
+  }
+ });
+
+ // BALAS PLAYER
+ bullets.forEach(b=>{
+  b.x+=b.vx*dt;
+  b.y+=b.vy*dt;
+ });
+
+ // BALAS ENEMIGAS
+ enemyBullets.forEach(b=>{
+  b.x+=b.vx*dt;
+  b.y+=b.vy*dt;
+ });
+
+ // CAMARA
+ camera.x+=((player.x-canvas.width/2)-camera.x)*0.1;
+ camera.y+=((player.y-canvas.height/2)-camera.y)*0.1;
+}
+
+// DRAW
+function draw(){
+ ctx.fillStyle="#222";
+ ctx.fillRect(0,0,canvas.width,canvas.height);
+
+ // PLAYER
+ ctx.fillStyle="cyan";
+ ctx.fillRect(player.x-camera.x,player.y-camera.y,30,30);
+
+ // ENEMY PLAYER
+ ctx.fillStyle="red";
+ ctx.fillRect(enemyPlayer.x-camera.x,enemyPlayer.y-camera.y,30,30);
+
+ // NPCs
+ ctx.fillStyle="orange";
+ npcs.forEach(n=>{
+  ctx.fillRect(n.x-camera.x,n.y-camera.y,20,20);
+ });
+
+ // BALAS
+ ctx.fillStyle="yellow";
+ bullets.forEach(b=>{
+  ctx.fillRect(b.x-camera.x,b.y-camera.y,5,5);
+ });
+
+ // BALAS ENEMIGAS
+ ctx.fillStyle="pink";
+ enemyBullets.forEach(b=>{
+  ctx.fillRect(b.x-camera.x,b.y-camera.y,5,5);
+ });
+}
+</script>
+
+</body>
+</html>
