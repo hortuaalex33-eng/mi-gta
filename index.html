@@ -59,7 +59,12 @@ let cars=[];
 // NPC enemigos
 let enemies=[];
 for(let i=0;i<15;i++){
- enemies.push({x:Math.random()*world.width,y:Math.random()*world.height});
+ enemies.push({
+  x:Math.random()*world.width,
+  y:Math.random()*world.height,
+  hp:100,
+  shootCooldown:0
+ });
 }
 
 // CARROS
@@ -118,20 +123,37 @@ function update(dt){
  });
 
  // ENEMIGOS disparan
- enemies.forEach(e=>{
-  let dx=player.x-e.x;
-  let dy=player.y-e.y;
-  let d=Math.hypot(dx,dy);
+ enemies.forEach((e,i)=>{
 
-  if(d<300){
-   e.x+=dx/d*50*dt;
-   e.y+=dy/d*50*dt;
+ let dx=player.x-e.x;
+ let dy=player.y-e.y;
+ let d=Math.hypot(dx,dy);
 
-   if(Math.random()<0.02){
-    bullets.push({x:e.x,y:e.y,vx:dx*2,vy:dy*2});
-   }
-  }
- });
+ // SE ACERCAN
+ if(d<400){
+  e.x+=dx/d*60*dt;
+  e.y+=dy/d*60*dt;
+ }
+
+ // DISPARO INTELIGENTE
+ e.shootCooldown-=dt;
+ if(d<500 && e.shootCooldown<=0){
+  let speed=400;
+  bullets.push({
+   x:e.x,
+   y:e.y,
+   vx:(dx/d)*speed,
+   vy:(dy/d)*speed,
+   enemy:true
+  });
+  e.shootCooldown=1.2; // dispara cada 1.2s
+ }
+
+ // MORIR
+ if(e.hp<=0){
+  enemies.splice(i,1);
+ }
+});
 
  // POLICIA
  if(wanted>1 && police.length<4){
@@ -146,16 +168,32 @@ function update(dt){
   p.y+=dy/d*180*dt;
 
   if(d<30){
-   health-=30*dt;
+   health-=10*dt;
   }
  });
 
  // DAÑO
- bullets.forEach(b=>{
+ bullets.forEach((b,bi)=>{
+
+ // DAÑO AL JUGADOR
+ if(b.enemy){
   if(Math.hypot(b.x-player.x,b.y-player.y)<15){
-   health-=20;
+   health-=10; // antes era muy alto 💀
+   bullets.splice(bi,1);
   }
- });
+ }
+
+ // DAÑO A NPC
+ else{
+  enemies.forEach(e=>{
+   if(Math.hypot(b.x-e.x,b.y-e.y)<15){
+    e.hp-=40;
+    bullets.splice(bi,1);
+   }
+  });
+ }
+
+});
 
  // CAMARA
  camera.x+=((player.x-canvas.width/2)-camera.x)*0.1;
@@ -215,4 +253,5 @@ function draw(){
 </script>
 
 </body>
+
 </html>
