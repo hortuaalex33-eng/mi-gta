@@ -131,28 +131,29 @@ function update(dt){
  let d = Math.hypot(dx, dy);
 
 if(d > 0){
-  p.x += dx/d * 180 * dt;
-  p.y += dy/d * 180 * dt;
+  e.x += dx/d * 180 * dt;
+  e.y += dy/d * 180 * dt;
 }
 
  // SE ACERCAN
- if(d<400){
-  e.x+=dx/d*60*dt;
-  e.y+=dy/d*60*dt;
+ if(d > 0 && d < 400){
+  e.x += dx/d * 60 * dt;
+  e.y += dy/d * 60 * dt;
  }
 
  // DISPARO INTELIGENTE
- e.shootCooldown-=dt;
- if(d<500 && e.shootCooldown<=0){
-  let speed=400;
+ if(d > 0.001){
+  let speed = 400;
+
   bullets.push({
-   x:e.x,
-   y:e.y,
-   vx:(dx/d)*speed,
-   vy:(dy/d)*speed,
-   enemy:true
+    x: e.x,
+    y: e.y,
+    vx: (dx/d) * speed,
+    vy: (dy/d) * speed,
+    enemy: true
   });
-  e.shootCooldown=1.2; // dispara cada 1.2s
+
+  e.shootCooldown = 1.2;
  }
 
  // MORIR
@@ -174,8 +175,10 @@ if(d > 0){
   let dx=player.x-p.x;
   let dy=player.y-p.y;
   let d=Math.hypot(dx,dy);
-  p.x+=dx/d*180*dt;
-  p.y+=dy/d*180*dt;
+  if(d > 0.0001){
+  p.x += dx/d * 180 * dt;
+  p.y += dy/d * 180 * dt;
+  }
 
   if(d<30){
    health-=10*dt;
@@ -293,6 +296,7 @@ function draw(){
 </body>
 
 </html>
+
 
 
 
