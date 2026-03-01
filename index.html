@@ -2,54 +2,70 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>GTA PRO MAX WAR 😈💀🐺</title>
+<title>GTA PRO MAX 🔥</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body { margin:0; overflow:hidden; background:#111; }
 canvas { display:block; }
 
+/* UI */
 #joystickBase {position:absolute; bottom:40px; left:40px; width:140px; height:140px; background:rgba(255,255,255,0.1); border-radius:50%;}
 #joystick {position:absolute; width:70px; height:70px; background:cyan; border-radius:50%; left:35px; top:35px;}
 #shootBtn {position:absolute; bottom:60px; right:40px; width:80px; height:80px; background:red; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white;}
+
+#hp {position:absolute; top:20px; left:20px; color:red; font-size:20px;}
+#wanted {position:absolute; top:50px; left:20px; color:yellow;}
+
+#minimap {
+ position:absolute; top:20px; right:20px;
+ width:120px; height:120px;
+ background:#000; border:2px solid white;
+}
 </style>
 </head>
 
 <body>
 
 <div id="joystickBase"><div id="joystick"></div></div>
-<div id="shootBtn">FIRE</div>
+<div id="shootBtn">🔥</div>
+
+<div id="hp"></div>
+<div id="wanted"></div>
 
 <canvas id="game"></canvas>
+<canvas id="minimap"></canvas>
 
 <script>
-const canvas=document.getElementById("game");
-const ctx=canvas.getContext("2d");
-canvas.width=innerWidth;
-canvas.height=innerHeight;
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+canvas.width = innerWidth;
+canvas.height = innerHeight;
 
-let world={width:6000,height:6000};
+const mini = document.getElementById("minimap");
+const mtx = mini.getContext("2d");
+
+let world={width:4000,height:4000};
 let camera={x:0,y:0};
 
-// PLAYER
-let player={x:3000,y:3000};
+let player={x:2000,y:2000,speed:250};
+let health=100;
+let wanted=0;
 
-// "MULTIJUGADOR FAKE"
-let enemyPlayer={x:2800,y:2800};
+let bullets=[];
+let police=[];
+let cars=[];
 
-// NPCs
-let npcs=[];
-for(let i=0;i<20;i++){
- npcs.push({
-  x:Math.random()*world.width,
-  y:Math.random()*world.height,
-  shootTimer:0
- });
+// NPC enemigos
+let enemies=[];
+for(let i=0;i<15;i++){
+ enemies.push({x:Math.random()*world.width,y:Math.random()*world.height});
 }
 
-// BALAS
-let bullets=[];
-let enemyBullets=[];
+// CARROS
+for(let i=0;i<5;i++){
+ cars.push({x:Math.random()*world.width,y:Math.random()*world.height});
+}
 
 // JOYSTICK
 let joy=document.getElementById("joystick");
@@ -67,19 +83,15 @@ base.addEventListener("touchmove",e=>{
 });
 
 base.addEventListener("touchend",()=>{
- inputX=0;inputY=0;
+ inputX=0; inputY=0;
  joy.style.left="35px";
  joy.style.top="35px";
 });
 
-// DISPARO PLAYER
+// DISPARO
 document.getElementById("shootBtn").addEventListener("touchstart",()=>{
- bullets.push({
-  x:player.x,
-  y:player.y,
-  vx:(inputX||1)*800,
-  vy:(inputY||0)*800
- });
+ bullets.push({x:player.x,y:player.y,vx:(inputX||1)*600,vy:(inputY||0)*600});
+ wanted+=0.3;
 });
 
 // LOOP
@@ -96,99 +108,109 @@ requestAnimationFrame(loop);
 // UPDATE
 function update(dt){
 
- // PLAYER
- player.x+=inputX*300*dt;
- player.y+=inputY*300*dt;
+ player.x+=inputX*player.speed*dt;
+ player.y+=inputY*player.speed*dt;
 
- // ENEMY PLAYER (IA)
- let dx=player.x-enemyPlayer.x;
- let dy=player.y-enemyPlayer.y;
- let d=Math.hypot(dx,dy)||1;
-
- enemyPlayer.x+=dx/d*150*dt;
- enemyPlayer.y+=dy/d*150*dt;
-
- // DISPARO ENEMY PLAYER
- if(Math.random()<0.02){
-  enemyBullets.push({
-   x:enemyPlayer.x,
-   y:enemyPlayer.y,
-   vx:dx/d*600,
-   vy:dy/d*600
-  });
- }
-
- // NPCs DISPARAN
- npcs.forEach(n=>{
-  let dx=player.x-n.x;
-  let dy=player.y-n.y;
-  let d=Math.hypot(dx,dy)||1;
-
-  n.shootTimer-=dt;
-
-  if(d<500){
-   n.x+=dx/d*100*dt;
-   n.y+=dy/d*100*dt;
-
-   if(n.shootTimer<=0){
-    enemyBullets.push({
-     x:n.x,
-     y:n.y,
-     vx:dx/d*700,
-     vy:dy/d*700
-    });
-    n.shootTimer=1.5;
-   }
-  }
- });
-
- // BALAS PLAYER
+ // DISPAROS
  bullets.forEach(b=>{
   b.x+=b.vx*dt;
   b.y+=b.vy*dt;
  });
 
- // BALAS ENEMIGAS
- enemyBullets.forEach(b=>{
-  b.x+=b.vx*dt;
-  b.y+=b.vy*dt;
+ // ENEMIGOS disparan
+ enemies.forEach(e=>{
+  let dx=player.x-e.x;
+  let dy=player.y-e.y;
+  let d=Math.hypot(dx,dy);
+
+  if(d<300){
+   e.x+=dx/d*50*dt;
+   e.y+=dy/d*50*dt;
+
+   if(Math.random()<0.02){
+    bullets.push({x:e.x,y:e.y,vx:dx*2,vy:dy*2});
+   }
+  }
+ });
+
+ // POLICIA
+ if(wanted>1 && police.length<4){
+  police.push({x:player.x+100,y:player.y});
+ }
+
+ police.forEach(p=>{
+  let dx=player.x-p.x;
+  let dy=player.y-p.y;
+  let d=Math.hypot(dx,dy);
+  p.x+=dx/d*180*dt;
+  p.y+=dy/d*180*dt;
+
+  if(d<30){
+   health-=30*dt;
+  }
+ });
+
+ // DAÑO
+ bullets.forEach(b=>{
+  if(Math.hypot(b.x-player.x,b.y-player.y)<15){
+   health-=20;
+  }
  });
 
  // CAMARA
  camera.x+=((player.x-canvas.width/2)-camera.x)*0.1;
  camera.y+=((player.y-canvas.height/2)-camera.y)*0.1;
+
+ // UI
+ document.getElementById("hp").innerText="❤️ "+Math.floor(health);
+ document.getElementById("wanted").innerText="⭐ "+wanted.toFixed(1);
 }
 
 // DRAW
 function draw(){
- ctx.fillStyle="#222";
- ctx.fillRect(0,0,canvas.width,canvas.height);
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+
+ // CALLES
+ for(let x=0;x<world.width;x+=200){
+  for(let y=0;y<world.height;y+=200){
+   ctx.strokeStyle="#333";
+   ctx.strokeRect(x-camera.x,y-camera.y,200,200);
+  }
+ }
 
  // PLAYER
  ctx.fillStyle="cyan";
- ctx.fillRect(player.x-camera.x,player.y-camera.y,30,30);
+ ctx.fillRect(player.x-camera.x,player.y-camera.y,25,25);
 
- // ENEMY PLAYER
- ctx.fillStyle="red";
- ctx.fillRect(enemyPlayer.x-camera.x,enemyPlayer.y-camera.y,30,30);
-
- // NPCs
+ // ENEMIGOS
  ctx.fillStyle="orange";
- npcs.forEach(n=>{
-  ctx.fillRect(n.x-camera.x,n.y-camera.y,20,20);
- });
+ enemies.forEach(e=>ctx.fillRect(e.x-camera.x,e.y-camera.y,20,20));
+
+ // POLICIA
+ ctx.fillStyle="blue";
+ police.forEach(p=>ctx.fillRect(p.x-camera.x,p.y-camera.y,20,20));
+
+ // CARROS
+ ctx.fillStyle="gray";
+ cars.forEach(c=>ctx.fillRect(c.x-camera.x,c.y-camera.y,30,15));
 
  // BALAS
  ctx.fillStyle="yellow";
- bullets.forEach(b=>{
-  ctx.fillRect(b.x-camera.x,b.y-camera.y,5,5);
- });
+ bullets.forEach(b=>ctx.fillRect(b.x-camera.x,b.y-camera.y,5,5));
 
- // BALAS ENEMIGAS
- ctx.fillStyle="pink";
- enemyBullets.forEach(b=>{
-  ctx.fillRect(b.x-camera.x,b.y-camera.y,5,5);
- });
+ // MINIMAPA
+ mtx.fillStyle="black";
+ mtx.fillRect(0,0,120,120);
+ let s=120/world.width;
+
+ mtx.fillStyle="white";
+ mtx.fillRect(player.x*s,player.y*s,4,4);
+
+ mtx.fillStyle="red";
+ enemies.forEach(e=>mtx.fillRect(e.x*s,e.y*s,2,2));
+
+ mtx.fillStyle="blue";
+ police.forEach(p=>mtx.fillRect(p.x*s,p.y*s,2,2));
 }
 </script>
 
