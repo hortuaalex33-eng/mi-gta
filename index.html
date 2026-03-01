@@ -157,7 +157,11 @@ function update(dt){
 
  // POLICIA
  if(wanted>1 && police.length<4){
-  police.push({x:player.x+100,y:player.y});
+ police.push({
+  x:player.x+100,
+  y:player.y,
+  hp:120
+ });
  }
 
  police.forEach(p=>{
@@ -191,10 +195,21 @@ function update(dt){
     bullets.splice(bi,1);
    }
   });
+
+ // 💀 DAÑO A POLICÍA (AGREGAR ESTO)
+ police.forEach((p,pi)=>{
+  if(Math.hypot(b.x-p.x,b.y-p.y)<20){
+   p.hp-=50;
+   bullets.splice(bi,1);
+
+   if(p.hp<=0){
+    police.splice(pi,1);
+    money+=100;
+   }
+  }
+ });
+
  }
-
-});
-
  // CAMARA
  camera.x+=((player.x-canvas.width/2)-camera.x)*0.1;
  camera.y+=((player.y-canvas.height/2)-camera.y)*0.1;
@@ -255,3 +270,4 @@ function draw(){
 </body>
 
 </html>
+
