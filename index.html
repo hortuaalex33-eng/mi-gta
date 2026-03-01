@@ -1,1 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>GTA PRO MAX ULTRA DIOS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<style>
+body { margin:0; overflow:hidden; background:#111; }
+canvas { display:block; }
+
+#joystickBase {
+  position:absolute; bottom:40px; left:40px;
+  width:140px; height:140px;
+  background:rgba(255,255,255,0.1);
+  border-radius:50%;
+}
+#joystick {
+  position:absolute; width:70px; height:70px;
+  background:cyan; border-radius:50%;
+  left:35px; top:35px;
+}
+
+#shootBtn {
+  position:absolute; bottom:60px; right:40px;
+  width:80px; height:80px;
+  background:red; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color:white;
+}
+
+#carBtn {
+  position:absolute; bottom:160px; right:40px;
+  width:80px; height:50px;
+  background:#0af; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  color:white;
+}
+
+#money,#hp { position:absolute; left:20px; font-weight:bold; }
+#money{top:20px;color:#0f0;}
+#hp{top:50px;color:red;}
+</style>
+</head>
+
+<body>
+
+<div id="joystickBase"><div id="joystick"></div></div>
+<div id="shootBtn">FIRE</div>
+<div id="carBtn">CAR</div>
+<div id="money">$0</div>
+<div id="hp">❤️100</div>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+canvas.width = innerWidth;
+canvas.height = innerHeight;
+
+let world={width:5000,height:5000};
+let camera={x:0,y:0};
+let money=0,health=100;
+
+// sonidos
+let shootSound=new Audio("https://actions.google.com/sounds/v1/impacts/metal_hit.ogg");
+let killSound=new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg");
+
+// PLAYER
+let player={x:2500,y:2500,size:30};
+
+// CARROS
+let cars=[];
+for(let i=0;i<5;i++){
+  cars.push({
+    x:Math.random()*world.width,
+    y:Math.random()*world.height,
+    speed:0
+  });
+}
+let inCar=false;
+let currentCar=null;
+
+// MAPA
+let roads=[];
+for(let x=0;x<world.width;x+=300){
+  roads.push({x:x,y:0,w:60,h:world.height});
+}
+for(let y=0;y<world.height;y+=300){
+  roads.push({x:0,y:y,w:world.width,h:60});
+}
+
+let houses=[];
+for(let x=0;x<world.width;x+=300){
+  for(let y=0;y<world.height;y+=300){
+    houses.push({x:x+80,y:y+80,w:140,h:140});
+  }
+}
+
+// NPCs
+let npcs=[];
+function spawnNPC(){
+  npcs.push({
+    x:Math.random()*world.width,
+    y:Math.random()*world.height,
+    hp:100
+  });
+}
+for(let i=0;i<20;i++) spawnNPC();
+
+let bullets=[];
+let particles=[];
+
+// joystick
+let joy=document.getElementById("joystick");
+let base=document.getElementById("joystickBase");
+let inputX=0,inputY=0;
+
+base.addEventListener("touchmove",e=>{
+  let t=e.touches[0],r=base.getBoundingClientRect();
+  let x=t.clientX-r.left-70,y=t.clientY-r.top-70;
+  let d=Math.hypot(x,y),max=50;
+  if(d>max){x=(x/d)*max;y=(y/d)*max;}
+  joy.style.left=(x+35)+"px";
+  joy.style.top=(y+35)+"px";
+  inputX=x/max; inputY=y/max;
+});
+
+base.addEventListener("touchend",()=>{
+  inputX=0; inputY=0;
+  joy.style.left="35px";
+  joy.style.top="35px";
+});
+
+// DISPARO
+document.getElementById("shootBtn").addEventListener("touchstart",()=>{
+  shootSound.currentTime=0;
+  shootSound.play();
+
+  let dx=inputX||1,dy=inputY||0;
+  let len=Math.hypot(dx,dy)||1;
+
+  bullets.push({
+    x:player.x,
+    y:player.y,
+    vx:(dx/len)*1200,
+    vy:(dy/len)*1200
+  });
+});
+
+// ENTRAR CARRO
+document.getElementById("carBtn").addEventListener("touchstart",()=>{
+  cars.forEach(c=>{
+    let d=Math.hypot(player.x-c.x,player.y-c.y);
+    if(d<100){
+      inCar=!inCar;
+      currentCar=c;
+    }
+  });
+});
+
+// LOOP
+let last=0;
+function loop(t){
+  let dt=(t-last)/1000;
+  last=t;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// UPDATE
+function update(dt){
+
+  if(inCar && currentCar){
+    currentCar.speed+=inputY*800*dt;
+    currentCar.speed*=0.95;
+
+    currentCar.x+=inputX*300*dt;
+    currentCar.y+=currentCar.speed*dt;
+
+    player.x=currentCar.x;
+    player.y=currentCar.y;
+  }else{
+    player.x+=inputX*250*dt;
+    player.y+=inputY*250*dt;
+  }
+
+  // IA que persigue
+  npcs.forEach(n=>{
+    let dx=player.x-n.x;
+    let dy=player.y-n.y;
+    let dist=Math.hypot(dx,dy);
+
+    if(dist<400){
+      n.x+=dx/dist*100*dt;
+      n.y+=dy/dist*100*dt;
+
+      if(dist<40){
+        health-=20*dt;
+      }
+    }
+  });
+
+  // balas
+  bullets.forEach(b=>{
+    b.x+=b.vx*dt;
+    b.y+=b.vy*dt;
+  });
+
+  // colisiones
+  for(let i=npcs.length-1;i>=0;i--){
+    for(let j=bullets.length-1;j>=0;j--){
+      if(Math.hypot(npcs[i].x-bullets[j].x,npcs[i].y-bullets[j].y)<20){
+
+        killSound.currentTime=0;
+        killSound.play();
+
+        for(let k=0;k<20;k++){
+          particles.push({
+            x:npcs[i].x,
+            y:npcs[i].y,
+            vx:(Math.random()-0.5)*400,
+            vy:(Math.random()-0.5)*400,
+            life:1
+          });
+        }
+
+        npcs.splice(i,1);
+        bullets.splice(j,1);
+        money+=20;
+
+        spawnNPC(); // respawn automático
+        break;
+      }
+    }
+  }
+
+  particles.forEach(p=>{
+    p.x+=p.vx*dt;
+    p.y+=p.vy*dt;
+    p.life-=dt;
+  });
+  particles=particles.filter(p=>p.life>0);
+
+  camera.x+=((player.x-canvas.width/2)-camera.x)*0.1;
+  camera.y+=((player.y-canvas.height/2)-camera.y)*0.1;
+
+  document.getElementById("money").innerText="$"+money;
+  document.getElementById("hp").innerText="❤️"+Math.floor(health);
+}
+
+// DRAW
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  ctx.fillStyle="#333";
+  roads.forEach(r=>ctx.fillRect(r.x-camera.x,r.y-camera.y,r.w,r.h));
+
+  ctx.fillStyle="#555";
+  houses.forEach(h=>ctx.fillRect(h.x-camera.x,h.y-camera.y,h.w,h.h));
+
+  ctx.fillStyle="cyan";
+  ctx.fillRect(player.x-camera.x,player.y-camera.y,30,30);
+
+  ctx.fillStyle="orange";
+  npcs.forEach(n=>ctx.fillRect(n.x-camera.x,n.y-camera.y,25,25));
+
+  ctx.fillStyle="yellow";
+  bullets.forEach(b=>ctx.fillRect(b.x-camera.x,b.y-camera.y,6,6));
+
+  ctx.fillStyle="red";
+  particles.forEach(p=>ctx.fillRect(p.x-camera.x,p.y-camera.y,4,4));
+
+  ctx.fillStyle="blue";
+  cars.forEach(c=>{
+    ctx.fillRect(c.x-camera.x,c.y-camera.y,40,20);
+  });
+}
+</script>
+
+</body>
+</html>
