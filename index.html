@@ -128,7 +128,12 @@ function update(dt){
 
  let dx=player.x-e.x;
  let dy=player.y-e.y;
- let d=Math.hypot(dx,dy);
+ let d = Math.hypot(dx, dy);
+
+if(d > 0){
+  p.x += dx/d * 180 * dt;
+  p.y += dy/d * 180 * dt;
+}
 
  // SE ACERCAN
  if(d<400){
@@ -288,6 +293,7 @@ function draw(){
 </body>
 
 </html>
+
 
 
 
