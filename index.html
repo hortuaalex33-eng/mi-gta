@@ -1,1 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>GTA PRO MAX 🔥</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<style>
+body { margin:0; overflow:hidden; background:#111; }
+canvas { display:block; }
+
+#joystickBase {position:absolute; bottom:40px; left:40px; width:140px; height:140px; background:rgba(255,255,255,0.1); border-radius:50%;}
+#joystick {position:absolute; width:70px; height:70px; background:cyan; border-radius:50%; left:35px; top:35px;}
+#shootBtn {position:absolute; bottom:60px; right:40px; width:80px; height:80px; background:red; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white;}
+
+#hp {position:absolute; top:20px; left:20px; color:red; font-size:20px;}
+#wanted {position:absolute; top:50px; left:20px; color:yellow;}
+
+#minimap {
+ position:absolute; top:20px; right:20px;
+ width:120px; height:120px;
+ background:#000; border:2px solid white;
+}
+</style>
+</head>
+
+<body>
+
+<div id="joystickBase"><div id="joystick"></div></div>
+<div id="shootBtn">🔥</div>
+
+<div id="hp"></div>
+<div id="wanted"></div>
+
+<canvas id="game"></canvas>
+<canvas id="minimap"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+canvas.width = innerWidth;
+canvas.height = innerHeight;
+
+const mini = document.getElementById("minimap");
+const mtx = mini.getContext("2d");
+
+let world={width:4000,height:4000};
+let camera={x:0,y:0};
+
+let player={x:2000,y:2000,speed:250};
+let health=100;
+let wanted=0;
+let money=0;
+ 
+let bullets=[];
+let police=[];
+let cars=[];
+
+let enemies=[];
+for(let i=0;i<15;i++){
+ enemies.push({
+  x:Math.random()*world.width,
+  y:Math.random()*world.height,
+  hp:100,
+  shootCooldown:0
+ });
+}
+
+for(let i=0;i<5;i++){
+ cars.push({x:Math.random()*world.width,y:Math.random()*world.height});
+}
+
+// JOYSTICK
+let joy=document.getElementById("joystick");
+let base=document.getElementById("joystickBase");
+let inputX=0,inputY=0;
+
+base.addEventListener("touchmove",e=>{
+ let t=e.touches[0],r=base.getBoundingClientRect();
+ let x=t.clientX-r.left-70,y=t.clientY-r.top-70;
+ let d=Math.hypot(x,y),max=50;
+ if(d>max){x=(x/d)*max;y=(y/d)*max;}
+ joy.style.left=(x+35)+"px";
+ joy.style.top=(y+35)+"px";
+ inputX=x/max; inputY=y/max;
+});
+
+base.addEventListener("touchend",()=>{
+ inputX=0; inputY=0;
+ joy.style.left="35px";
+ joy.style.top="35px";
+});
+
+// DISPARO
+document.getElementById("shootBtn").addEventListener("touchstart",()=>{
+ bullets.push({
+  x:player.x,
+  y:player.y,
+  vx:(inputX||1)*600,
+  vy:(inputY||0)*600
+ });
+ wanted+=0.3;
+});
+
+// LOOP
+let last=0;
+function loop(t){
+ let dt=(t-last)/1000;
+ last=t;
+ update(dt);
+ draw();
+ requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// UPDATE (ARREGLADO 😈)
+function update(dt){
+
+ player.x+=inputX*player.speed*dt;
+ player.y+=inputY*player.speed*dt;
+
+ // limites mapa
+ player.x=Math.max(0,Math.min(world.width,player.x));
+ player.y=Math.max(0,Math.min(world.height,player.y));
+
+ // BALAS
+ bullets.forEach((b,i)=>{
+  b.x+=b.vx*dt;
+  b.y+=b.vy*dt;
+
+  if(b.x<0||b.y<0||b.x>world.width||b.y>world.height){
+    bullets.splice(i,1);
+  }
+ });
+
+ // ENEMIGOS
+ enemies.forEach((e,i)=>{
+
+  let dx=player.x-e.x;
+  let dy=player.y-e.y;
+  let d=Math.hypot(dx,dy);
+
+  if(d>0.01){
+    e.x+=dx/d*120*dt;
+    e.y+=dy/d*120*dt;
+  }
+
+  e.shootCooldown-=dt;
+
+  if(d<400 && e.shootCooldown<=0){
+    let speed=400;
+
+    bullets.push({
+      x:e.x,
+      y:e.y,
+      vx:(dx/d)*speed,
+      vy:(dy/d)*speed,
+      enemy:true
+    });
+
+    e.shootCooldown=1.2;
+  }
+
+  if(e.hp<=0){
+    enemies.splice(i,1);
+  }
+ });
+
+ // POLICIA
+ if(wanted>1 && police.length<4){
+  police.push({
+   x:player.x+100,
+   y:player.y,
+   hp:120
+  });
+ }
+
+ police.forEach((p,pi)=>{
+  let dx=player.x-p.x;
+  let dy=player.y-p.y;
+  let d=Math.hypot(dx,dy);
+
+  if(d>0.01){
+    p.x+=dx/d*180*dt;
+    p.y+=dy/d*180*dt;
+  }
+
+  if(d<30){
+    health-=10*dt;
+  }
+ });
+
+ // DAÑO
+ bullets.forEach((b,bi)=>{
+  let removed=false;
+
+  if(b.enemy){
+    if(Math.hypot(b.x-player.x,b.y-player.y)<20){
+      health-=10;
+      removed=true;
+    }
+  }else{
+
+    enemies.forEach((e,ei)=>{
+      if(!removed && Math.hypot(b.x-e.x,b.y-e.y)<20){
+        e.hp-=40;
+        removed=true;
+
+        if(e.hp<=0){
+          enemies.splice(ei,1);
+          money+=50;
+        }
+      }
+    });
+
+    police.forEach((p,pi)=>{
+      if(!removed && Math.hypot(b.x-p.x,b.y-p.y)<20){
+        p.hp-=50;
+        removed=true;
+
+        if(p.hp<=0){
+          police.splice(pi,1);
+          money+=100;
+        }
+      }
+    });
+  }
+
+  if(removed){
+    bullets.splice(bi,1);
+  }
+ });
+
+ // CAMARA
+ camera.x += ((player.x - canvas.width/2) - camera.x) * 0.1;
+ camera.y += ((player.y - canvas.height/2) - camera.y) * 0.1;
+
+ // UI
+ document.getElementById("hp").innerText = "❤️ " + Math.floor(health);
+ document.getElementById("wanted").innerText = "⭐ " + wanted.toFixed(1);
+}
+
+// DRAW
+function draw(){
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+
+ for(let x=0;x<world.width;x+=200){
+  for(let y=0;y<world.height;y+=200){
+   ctx.strokeStyle="#333";
+   ctx.strokeRect(x-camera.x,y-camera.y,200,200);
+  }
+ }
+
+ ctx.fillStyle="cyan";
+ ctx.fillRect(player.x-camera.x,player.y-camera.y,25,25);
+
+ ctx.fillStyle="orange";
+ enemies.forEach(e=>ctx.fillRect(e.x-camera.x,e.y-camera.y,20,20));
+
+ ctx.fillStyle="blue";
+ police.forEach(p=>ctx.fillRect(p.x-camera.x,p.y-camera.y,20,20));
+
+ ctx.fillStyle="gray";
+ cars.forEach(c=>ctx.fillRect(c.x-camera.x,c.y-camera.y,30,15));
+
+ ctx.fillStyle="yellow";
+ bullets.forEach(b=>ctx.fillRect(b.x-camera.x,b.y-camera.y,5,5));
+
+ // minimapa
+ mtx.fillStyle="black";
+ mtx.fillRect(0,0,120,120);
+ let s=120/world.width;
+
+ mtx.fillStyle="white";
+ mtx.fillRect(player.x*s,player.y*s,4,4);
+
+ mtx.fillStyle="red";
+ enemies.forEach(e=>mtx.fillRect(e.x*s,e.y*s,2,2));
+
+ mtx.fillStyle="blue";
+ police.forEach(p=>mtx.fillRect(p.x*s,p.y*s,2,2));
+}
+</script>
+
+</body>
+</html>
