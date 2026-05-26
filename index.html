@@ -38,8 +38,11 @@ canvas { display:block; }
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
-canvas.width = innerWidth;
-canvas.height = innerHeight;
+window.addEventListener("resize",
+()=>{
+  canvas.width=innerWidth;
+  canvas.height=innerHeight;
+});
 
 const mini = document.getElementById("minimap");
 const mtx = mini.getContext("2d");
@@ -76,6 +79,7 @@ let base=document.getElementById("joystickBase");
 let inputX=0,inputY=0;
 
 base.addEventListener("touchmove",e=>{
+  e.preventDefaul();
  let t=e.touches[0],r=base.getBoundingClientRect();
  let x=t.clientX-r.left-70,y=t.clientY-r.top-70;
  let d=Math.hypot(x,y),max=50;
@@ -99,7 +103,7 @@ document.getElementById("shootBtn").addEventListener("touchstart",()=>{
   vx:(inputX||1)*600,
   vy:(inputY||0)*600
  });
- wanted+=0.3;
+ wanted=Math.min(5,wanted+0.3);
 });
 
 // LOOP
@@ -167,8 +171,10 @@ function update(dt){
  });
 
  // POLICIA
- if(wanted>1 && police.length<4){
-  police.push({
+ if(wanted>1 && police.length<4 &&
+  policeSpawn<=0){
+    police.push(...);
+    policeSpawn=2;
    x:player.x+100,
    y:player.y,
    hp:120
@@ -268,7 +274,7 @@ function draw(){
 
  // minimapa
  mtx.fillStyle="black";
- mtx.fillRect(0,0,120,120);
+ mtx.clearRect(0,0,120,120);
  let s=120/world.width;
 
  mtx.fillStyle="white";
