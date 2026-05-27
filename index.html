@@ -144,7 +144,32 @@ let policeSpawn = 0;
 
 let aimX = 1;
 let aimY = 0;
+let weapon = "pistol";
 
+const weapons = {
+  pistol:{
+    speed:600,
+    damage:40,
+    cooldown:0.3,
+    bullets:1
+  },
+
+  shotgun:{
+    speed:500,
+    damage:35,
+    cooldown:0.8,
+    bullets:5
+  },
+
+  minigun:{
+    speed:800,
+    damage:15,
+    cooldown:0.08,
+    bullets:1
+  }
+};
+
+let shootCooldown = 0;
 for(let i=0;i<15;i++){
   enemies.push({
     x:Math.random()*world.width,
@@ -210,17 +235,35 @@ base.addEventListener("touchend",()=>{
 document.getElementById("shootBtn")
 .addEventListener("touchstart",()=>{
 
-  bullets.push({
-    x:player.x,
-    y:player.y,
-    vx:aimX*600,
-    vy:aimY*600,
-    enemy:false
-  });
+  if(shootCooldown > 0) return;
+
+  let w = weapons[weapon];
+
+  shootCooldown = w.cooldown;
+
+  for(let i=0;i<w.bullets;i++){
+
+    let spread = 0;
+
+    if(weapon=="shotgun"){
+      spread = (Math.random()-0.5)*0.5;
+    }
+
+    let angle = Math.atan2(aimY,aimX) + spread;
+
+    bullets.push({
+      x:player.x,
+      y:player.y,
+      vx:Math.cos(angle)*w.speed,
+      vy:Math.sin(angle)*w.speed,
+      damage:w.damage,
+      enemy:false
+    });
+  }
 
   wanted = Math.min(5,wanted+0.2);
 });
-
+  
 let last = 0;
 
 function loop(t){
@@ -237,7 +280,8 @@ function loop(t){
 requestAnimationFrame(loop);
 
 function update(dt){
-
+shootCooldown -= dt;
+  
   if(health <= 0){
     alert("💀 GAME OVER");
     location.reload();
@@ -380,7 +424,7 @@ function update(dt){
         b.y-e.y
       ) < 20){
 
-        e.hp -= 40;
+        e.hp -= b.damage;
 
         bullets.splice(bi,1);
         removed = true;
@@ -399,7 +443,7 @@ function update(dt){
         b.y-p.y
       ) < 20){
 
-        p.hp -= 50;
+        p.hp -= b.damage;
 
         bullets.splice(bi,1);
         break;
@@ -536,7 +580,23 @@ function draw(){
   police.forEach(p=>{
     mtx.fillRect(p.x*s,p.y*s,2,2);
   });
-}
+  
+
+window.addEventListener("keydown",(e)=>{
+
+  if(e.key=="1"){
+    weapon = "pistol";
+  }
+
+  if(e.key=="2"){
+    weapon = "shotgun";
+  }
+
+  if(e.key=="3"){
+    weapon = "minigun";
+  }
+});
+
 </script>
 
 </body>
