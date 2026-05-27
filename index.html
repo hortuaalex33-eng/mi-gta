@@ -82,6 +82,24 @@ canvas{
   background:black;
   border:2px solid white;
 }
+  #gunButtons{
+  position:absolute;
+  bottom:170px;
+  right:20px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+#gunButtons button{
+  width:70px;
+  height:70px;
+  font-size:30px;
+  border:none;
+  border-radius:20px;
+  background:#222;
+  color:white;
+}
 </style>
 </head>
 
@@ -96,6 +114,15 @@ canvas{
 <div id="hp"></div>
 <div id="wanted"></div>
 <div id="money"></div>
+<div id="gunButtons">
+
+<button onclick="weapon='pistol'">🔫</button>
+
+<button onclick="weapon='shotgun'">💥</button>
+
+<button onclick="weapon='minigun'">🔥</button>
+
+  </div>
 
 <canvas id="game"></canvas>
 <canvas id="minimap"></canvas>
@@ -415,6 +442,8 @@ shootCooldown -= dt;
     }
 
     // Bala jugador
+    if(b.enemy) continue;
+    
     for(let ei=enemies.length-1;ei>=0;ei--){
 
       let e = enemies[ei];
