@@ -199,7 +199,7 @@ const weapons = {
 
   pistol:new Audio("pistola.mp3"),
 
-  shotgun:new Audio("pistola.mp3"),
+  shotgun:new Audio("shotgun.mp3"),
 
   minigun:new Audio("minigun.mp3")
 };
@@ -320,8 +320,11 @@ function shoot(){
   
   if(weapon != "minigun"){
 
-  sounds[weapon].currentTime = 0;
-  sounds[weapon].play();
+  let s = sounds[weapon].cloneNode();
+
+s.volume = 0.5;
+
+s.play();
 
 }else{
 
@@ -703,7 +706,7 @@ window.addEventListener("keydown",(e)=>{
   }
 
   if(e.key=="2"){
-    weapon = "escopeta";
+    weapon = "shotgun";
   }
 
   if(e.key=="3"){
