@@ -155,7 +155,7 @@ let camera = {
 let player = {
   x:2000,
   y:2000,
-  speed:250
+  speed:250,
   inCar:false
 };
 
@@ -217,7 +217,7 @@ const weapons = {
 
   pistol:new Audio("pistola.mp3"),
 
-  shotgun:new Audio("shotgun.mp3"),
+  shotgun:new Audio("escopeta.mp3"),
 
   minigun:new Audio("minigun.mp3")
 };
@@ -254,7 +254,7 @@ for(let i=0;i<15;i++){
 for(let i=0;i<5;i++){
   cars.push({
     x:Math.random()*world.width,
-    y:Math.random()*world.height
+    y:Math.random()*world.height,
     driver:false
   });
 }
@@ -406,8 +406,10 @@ wanted = Math.max(0,wanted);
 
   policeSpawn -= dt;
 
-  let nextX = player.x + inputX*player.inCar ? 500 : 250*dt;
-let nextY = player.y + inputY*player.inCar ? 500 : 250*dt;
+  let speed = player.inCar ? 500 : 250;
+
+let nextX = player.x + inputX * speed * dt;
+let nextY = player.y + inputY * speed * dt;
 
 let blocked = false;
 
