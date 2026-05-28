@@ -156,6 +156,7 @@ let player = {
   x:2000,
   y:2000,
   speed:250
+  inCar:false
 };
 
 let health = 100;
@@ -254,6 +255,7 @@ for(let i=0;i<5;i++){
   cars.push({
     x:Math.random()*world.width,
     y:Math.random()*world.height
+    driver:false
   });
 }
 
@@ -404,8 +406,28 @@ wanted = Math.max(0,wanted);
 
   policeSpawn -= dt;
 
-  player.x += inputX*player.speed*dt;
-  player.y += inputY*player.speed*dt;
+  let nextX = player.x + inputX*player.inCar ? 500 : 250*dt;
+let nextY = player.y + inputY*player.inCar ? 500 : 250*dt;
+
+let blocked = false;
+
+buildings.forEach(b=>{
+
+  if(
+    nextX + 25 > b.x &&
+    nextX < b.x + b.w &&
+    nextY + 25 > b.y &&
+    nextY < b.y + b.h
+  ){
+    blocked = true;
+  }
+});
+
+if(!blocked){
+
+  player.x = nextX;
+  player.y = nextY;
+}
 
   player.x = Math.max(0,
   Math.min(world.width,player.x));
@@ -469,8 +491,8 @@ if(!e.angry){
     e.moveTime = 2 + Math.random()*3;
   }
 
-  e.x += e.dirX * 40 * dt;
-  e.y += e.dirY * 40 * dt;
+  e.x += Math.round(e.dirX) * 40 * dt;
+e.y += Math.round(e.dirY) * 40 * dt;
 }
 
 // NPC ENOJADO
@@ -729,6 +751,8 @@ buildings.forEach(b=>{
 });
   
   // PLAYER
+  if(!player.inCar){
+
   ctx.fillStyle="cyan";
 
   ctx.fillRect(
@@ -737,6 +761,7 @@ buildings.forEach(b=>{
     25,
     25
   );
+  }
 
   // ENEMIGOS
   ctx.fillStyle="orange";
@@ -765,17 +790,17 @@ buildings.forEach(b=>{
   });
 
   // CARROS
-  ctx.fillStyle="gray";
+cars.forEach(c=>{
 
-  cars.forEach(c=>{
+  ctx.fillStyle = c.driver ? "red" : "gray";
 
-    ctx.fillRect(
-      c.x-camera.x,
-      c.y-camera.y,
-      30,
-      15
-    );
-  });
+  ctx.fillRect(
+    c.x-camera.x,
+    c.y-camera.y,
+    50,
+    25
+  );
+});
 
   // BALAS
   ctx.fillStyle="yellow";
@@ -830,6 +855,27 @@ window.addEventListener("keydown",(e)=>{
 
   if(e.key=="3"){
     weapon = "minigun";
+  }
+});
+  
+  window.addEventListener("keydown",(e)=>{
+
+  if(e.key=="e"){
+
+    cars.forEach(c=>{
+
+      let d = Math.hypot(
+        player.x-c.x,
+        player.y-c.y
+      );
+
+      if(d < 80){
+
+        c.driver = !c.driver;
+
+        player.inCar = c.driver;
+      }
+    });
   }
 });
 
