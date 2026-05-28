@@ -305,6 +305,9 @@ shootBtn.addEventListener("touchstart",()=>{
 
 shootBtn.addEventListener("touchend",()=>{
   shooting = false;
+  
+  sounds.minigun.pause();
+  sounds.minigun.currentTime = 0;
 });
 
 function shoot(){
@@ -315,8 +318,18 @@ function shoot(){
 
   shootCooldown = w.cooldown;
   
+  if(weapon != "minigun"){
+
   sounds[weapon].currentTime = 0;
-sounds[weapon].play();
+  sounds[weapon].play();
+
+}else{
+
+  if(sounds.minigun.paused){
+
+    sounds.minigun.play();
+  }
+ }
 
   for(let i=0;i<w.bullets;i++){
 
