@@ -198,9 +198,24 @@ const weapons = {
 
 let shootCooldown = 0;
 for(let i=0;i<15;i++){
+
+  let ex, ey, dist;
+
+  do{
+
+    ex = Math.random()*world.width;
+    ey = Math.random()*world.height;
+
+    dist = Math.hypot(
+      ex - player.x,
+      ey - player.y
+    );
+
+  }while(dist < 500);
+
   enemies.push({
-    x:Math.random()*world.width,
-    y:Math.random()*world.height,
+    x:ex,
+    y:ey,
     hp:100,
     shootCooldown:0
   });
@@ -333,9 +348,7 @@ wanted = Math.max(0,wanted);
   if(shooting){
   shoot();
   }
-if(shooting){
-  shoot();
-}  
+  
   if(health <= 0){
     alert("💀 GAME OVER");
     location.reload();
@@ -407,12 +420,8 @@ police.push({
 
       let speed = 400;
 
-      
-
       e.shootCooldown = 1.2;
-    }
-if(d > 0){
-
+  
   bullets.push({
     x:e.x,
     y:e.y,
@@ -516,15 +525,8 @@ if(d > 0){
   }
 
   // CAMARA
-  camera.x += (
-    (player.x - canvas.width/2)
-    - camera.x
-  ) * 0.05;
-
-  camera.y += (
-    (player.y - canvas.height/2)
-    - camera.y
-  ) * 0.05;
+  camera.x = player.x - canvas.width/2;
+camera.y = player.y - canvas.height/2;
 
   // UI
   document.getElementById("hp")
