@@ -195,6 +195,14 @@ const weapons = {
     bullets:1
   }
 };
+  const sounds = {
+
+  pistol:new Audio("pistola.mp3"),
+
+  shotgun:new Audio("escopeta.mp3"),
+
+  minigun:new Audio("minigun.mp3")
+};
 
 let shootCooldown = 0;
 for(let i=0;i<15;i++){
@@ -306,6 +314,9 @@ function shoot(){
   let w = weapons[weapon];
 
   shootCooldown = w.cooldown;
+  
+  sounds[weapon].currentTime = 0;
+sounds[weapon].play();
 
   for(let i=0;i<w.bullets;i++){
 
