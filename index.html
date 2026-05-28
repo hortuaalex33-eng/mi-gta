@@ -438,7 +438,7 @@ if(e.angry && d > 0.01){
 
     e.shootCooldown -= dt;
 
-    if(d < 400 && e.shootCooldown <= 0){
+  if(e.angry && d < 400 && e.shootCooldown <= 0){
 
       let speed = 400;
 
