@@ -251,7 +251,6 @@ base.addEventListener("touchmove",(e)=>{
 },{passive:false});
 
 base.addEventListener("touchend",()=>{
-base.addEventListener("touchcancel",()=>{
 
   inputX = 0;
   inputY = 0;
@@ -259,6 +258,9 @@ base.addEventListener("touchcancel",()=>{
   joy.style.left = "35px";
   joy.style.top = "35px";
 });
+  
+base.addEventListener("touchcancel",()=>{
+  
   inputX = 0;
   inputY = 0;
 
@@ -308,7 +310,6 @@ function shoot(){
 
   wanted = Math.min(5,wanted+0.2);
 }
-});
   
 let last = 0;
 
