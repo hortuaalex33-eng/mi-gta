@@ -214,11 +214,15 @@ for(let i=0;i<15;i++){
   }while(dist < 500);
 
   enemies.push({
-    x:ex,
-    y:ey,
-    hp:100,
-    shootCooldown:0
-  });
+  x:ex,
+  y:ey,
+  hp:100,
+  shootCooldown:0,
+  angry:false,
+  dirX:Math.random()-0.5,
+  dirY:Math.random()-0.5,
+  moveTime:0
+});
 }
 
 for(let i=0;i<5;i++){
@@ -404,15 +408,33 @@ police.push({
     let e = enemies[i];
 
     let dx = player.x - e.x;
-    let dy = player.y - e.y;
+let dy = player.y - e.y;
 
-    let d = Math.hypot(dx,dy);
+let d = Math.hypot(dx,dy);
 
-    if(d > 0.01){
+// NPC PASIVO
+if(!e.angry){
 
-      e.x += (dx/d)*120*dt;
-      e.y += (dy/d)*120*dt;
-    }
+  e.moveTime -= dt;
+
+  if(e.moveTime <= 0){
+
+    e.dirX = Math.random()-0.5;
+    e.dirY = Math.random()-0.5;
+
+    e.moveTime = 2 + Math.random()*3;
+  }
+
+  e.x += e.dirX * 40 * dt;
+  e.y += e.dirY * 40 * dt;
+}
+
+// NPC ENOJADO
+if(e.angry && d > 0.01){
+
+  e.x += (dx/d)*120*dt;
+  e.y += (dy/d)*120*dt;
+}
 
     e.shootCooldown -= dt;
 
@@ -498,7 +520,8 @@ police.push({
       ) < 20){
 
         e.hp -= b.damage;
-
+        e.angry = true;
+        
         bullets.splice(bi,1);
         removed = true;
         break;
