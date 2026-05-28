@@ -166,6 +166,23 @@ let bullets = [];
 let enemies = [];
 let police = [];
 let cars = [];
+let buildings = [
+
+  {x:300,y:300,w:180,h:180,color:"#777"},
+  {x:700,y:300,w:140,h:220,color:"#999"},
+  {x:1100,y:250,w:220,h:180,color:"#666"},
+
+  {x:300,y:700,w:200,h:140,color:"#888"},
+  {x:700,y:800,w:180,h:180,color:"#777"},
+  {x:1200,y:700,w:160,h:240,color:"#555"},
+
+  {x:1800,y:400,w:240,h:240,color:"#666"},
+  {x:2300,y:300,w:180,h:180,color:"#999"},
+
+  {x:2600,y:800,w:200,h:200,color:"#777"},
+  {x:3100,y:600,w:180,h:260,color:"#666"}
+
+];
 
 let policeSpawn = 0;
 
@@ -594,21 +611,123 @@ function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
   // GRID
-  for(let x=0;x<world.width;x+=200){
+// PASTO
+ctx.fillStyle = "#2f8f2f";
 
-    for(let y=0;y<world.height;y+=200){
+ctx.fillRect(
+  -camera.x,
+  -camera.y,
+  world.width,
+  world.height
+);
 
-      ctx.strokeStyle="#333";
+// CALLES VERTICALES
+ctx.fillStyle = "#2b2b2b";
 
-      ctx.strokeRect(
-        x-camera.x,
-        y-camera.y,
-        200,
-        200
+for(let x=0;x<world.width;x+=400){
+
+  ctx.fillRect(
+    x-camera.x,
+    -camera.y,
+    120,
+    world.height
+  );
+}
+
+// CALLES HORIZONTALES
+for(let y=0;y<world.height;y+=400){
+
+  ctx.fillRect(
+    -camera.x,
+    y-camera.y,
+    world.width,
+    120
+  );
+}
+
+// LINEAS CALLE
+ctx.strokeStyle = "yellow";
+ctx.lineWidth = 4;
+
+for(let x=0;x<world.width;x+=400){
+
+  ctx.beginPath();
+
+  ctx.moveTo(x+60-camera.x,-camera.y);
+  ctx.lineTo(x+60-camera.x,world.height-camera.y);
+
+  ctx.stroke();
+}
+
+for(let y=0;y<world.height;y+=400){
+
+  ctx.beginPath();
+
+  ctx.moveTo(-camera.x,y+60-camera.y);
+  ctx.lineTo(world.width-camera.x,y+60-camera.y);
+
+  ctx.stroke();
+}
+
+// RIO
+ctx.fillStyle = "#3aa6ff";
+
+ctx.fillRect(
+  1400-camera.x,
+  0-camera.y,
+  350,
+  world.height
+);
+
+// PUENTE
+ctx.fillStyle = "#c2b280";
+
+ctx.fillRect(
+  1400-camera.x,
+  900-camera.y,
+  350,
+  120
+);
+
+// PARQUE
+ctx.fillStyle = "#46b946";
+
+ctx.fillRect(
+  2500-camera.x,
+  2500-camera.y,
+  500,
+  500
+);
+
+// EDIFICIOS
+buildings.forEach(b=>{
+
+  ctx.fillStyle = b.color;
+
+  ctx.fillRect(
+    b.x-camera.x,
+    b.y-camera.y,
+    b.w,
+    b.h
+  );
+
+  // ventanas
+  ctx.fillStyle = "#aee3ff";
+
+  for(let wx=15;wx<b.w-20;wx+=30){
+
+    for(let wy=15;wy<b.h-20;wy+=30){
+
+      ctx.fillRect(
+        b.x+wx-camera.x,
+        b.y+wy-camera.y,
+        10,
+        10
       );
     }
   }
-
+});
+  
   // PLAYER
   ctx.fillStyle="cyan";
 
