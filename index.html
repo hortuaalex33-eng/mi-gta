@@ -158,7 +158,8 @@ let player = {
   speed:250,
   inCar:false
 };
-
+let currentCar = null;
+  
 let health = 100;
 let wanted = 0;
 let money = 0;
@@ -410,7 +411,15 @@ wanted = Math.max(0,wanted);
 
 let nextX = player.x + inputX * speed * dt;
 let nextY = player.y + inputY * speed * dt;
+if(player.inCar && currentCar){
 
+    currentCar.x += inputX * speed * dt;
+    currentCar.y += inputY * speed * dt;
+
+    player.x = currentCar.x + 12;
+    player.y = currentCar.y + 5;
+}
+  
 let blocked = false;
 
 buildings.forEach(b=>{
@@ -427,8 +436,20 @@ buildings.forEach(b=>{
 
 if(!blocked){
 
-  player.x = nextX;
-  player.y = nextY;
+    if(player.inCar && currentCar){
+
+        currentCar.x = nextX;
+        currentCar.y = nextY;
+
+        player.x = currentCar.x + 12;
+        player.y = currentCar.y + 5;
+
+    }else{
+
+        player.x = nextX;
+        player.y = nextY;
+
+    }
 }
 
   player.x = Math.max(0,
@@ -875,7 +896,16 @@ window.addEventListener("keydown",(e)=>{
 
         c.driver = !c.driver;
 
-        player.inCar = c.driver;
+   player.inCar = c.driver;
+
+if(c.driver){
+
+    currentCar = c;
+
+}else{
+
+    currentCar = null;
+  }
       }
     });
   }
