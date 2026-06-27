@@ -54,9 +54,9 @@ canvas{
 
   position:absolute;
 
-  bottom:160px;
+  bottom:60px;
 
-  right:40px;
+  right:140px;
 
   width:80px;
 
@@ -282,10 +282,22 @@ for(let i=0;i<15;i++){
 
 for(let i=0;i<5;i++){
   cars.push({
+
     x:Math.random()*world.width,
+
     y:Math.random()*world.height,
+
+    width:60,
+
+    height:30,
+
+    speed:0,
+
+    angle:0,
+
     driver:false
-  });
+
+});
 }
 
 const joy = document.getElementById("joystick");
@@ -844,14 +856,26 @@ buildings.forEach(b=>{
   // CARROS
 cars.forEach(c=>{
 
-  ctx.fillStyle = c.driver ? "red" : "gray";
+    ctx.save();
 
-  ctx.fillRect(
-    c.x-camera.x,
-    c.y-camera.y,
-    50,
-    25
-  );
+    ctx.translate(
+        c.x-camera.x+30,
+        c.y-camera.y+15
+    );
+
+    ctx.rotate(c.angle);
+
+    ctx.fillStyle = c.driver ? "red" : "gray";
+
+    ctx.fillRect(
+        -30,
+        -15,
+        60,
+        30
+    );
+
+    ctx.restore();
+
 });
 
   // BALAS
