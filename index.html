@@ -50,7 +50,34 @@ canvas{
   color:white;
   font-size:30px;
 }
+#carBtn{
 
+  position:absolute;
+
+  bottom:160px;
+
+  right:40px;
+
+  width:80px;
+
+  height:80px;
+
+  background:#555;
+
+  border-radius:50%;
+
+  display:flex;
+
+  justify-content:center;
+
+  align-items:center;
+
+  font-size:35px;
+
+  color:white;
+
+}
+  
 #hp{
   position:absolute;
   top:20px;
@@ -110,7 +137,8 @@ canvas{
 </div>
 
 <div id="shootBtn">🔥</div>
-
+<div id="carBtn">🚗</div>
+  
 <div id="hp"></div>
 <div id="wanted"></div>
 <div id="money"></div>
@@ -318,7 +346,8 @@ base.addEventListener("touchcancel",()=>{
 let shooting = false;
 
 const shootBtn = document.getElementById("shootBtn");
-
+const carBtn = document.getElementById("carBtn");
+  
 shootBtn.addEventListener("touchstart",()=>{
   shooting = true;
 });
@@ -881,34 +910,38 @@ window.addEventListener("keydown",(e)=>{
   }
 });
   
-  window.addEventListener("keydown",(e)=>{
+carBtn.addEventListener("touchstart",()=>{
 
-  if(e.key=="e"){
+    // Si ya está en un carro, se baja
+    if(player.inCar){
 
-    cars.forEach(c=>{
+        if(currentCar){
+            currentCar.driver = false;
+        }
 
-      let d = Math.hypot(
-        player.x-c.x,
-        player.y-c.y
-      );
+        currentCar = null;
+        player.inCar = false;
+        return;
+    }
 
-      if(d < 80){
+    // Buscar un carro cercano
+    for(let c of cars){
 
-        c.driver = !c.driver;
+        let d = Math.hypot(
+            player.x - c.x,
+            player.y - c.y
+        );
 
-   player.inCar = c.driver;
+        if(d < 80){
 
-if(c.driver){
+            c.driver = true;
+            currentCar = c;
+            player.inCar = true;
 
-    currentCar = c;
+            break;
+        }
+    }
 
-}else{
-
-    currentCar = null;
-  }
-      }
-    });
-  }
 });
 
 </script>
