@@ -685,6 +685,19 @@ camera.y = player.y - canvas.height/2;
 
   document.getElementById("money")
   .innerText = "💰 $" + money;
+const gunUI = document.getElementById("gunButtons");
+const shootUI = document.getElementById("shootBtn");
+
+if(player.inCar){
+
+    gunUI.style.display = "none";
+    shootUI.style.display = "none";
+
+}else{
+
+    gunUI.style.display = "flex";
+    shootUI.style.display = "flex";
+
 }
 
 function draw(){
