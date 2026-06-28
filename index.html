@@ -450,23 +450,13 @@ wanted = Math.max(0,wanted);
 
   let speed = player.inCar ? 500 : 250;
 
-  let speed = player.inCar ? 500 : 250;
-
 let baseX = player.inCar ? currentCar.x : player.x;
 let baseY = player.inCar ? currentCar.y : player.y;
 
 let nextX = baseX + inputX * speed * dt;
 let nextY = baseY + inputY * speed * dt;
-if(player.inCar && currentCar){
 
-    currentCar.x += inputX * speed * dt;
-    currentCar.y += inputY * speed * dt;
-
-    player.x = currentCar.x + 12;
-    player.y = currentCar.y + 5;
-}
-  
-let blocked = false;
+ blocked = false;
 
 buildings.forEach(b=>{
 
