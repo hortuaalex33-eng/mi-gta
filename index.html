@@ -860,14 +860,32 @@ cars.forEach(c=>{
 
     ctx.rotate(c.angle);
 
-    ctx.fillStyle = c.driver ? "red" : "gray";
+    // Carro
+    ctx.fillStyle = c.driver ? "#d60000" : "#666";
+    ctx.fillRect(-28,-12,56,24);
 
-    ctx.fillRect(
-        -30,
-        -15,
-        60,
-        30
-    );
+    // Techo
+    ctx.fillStyle = "#87CEEB";
+    ctx.fillRect(-12,-9,24,18);
+
+    // Ruedas
+    ctx.fillStyle = "#111";
+
+    ctx.fillRect(-32,-15,6,10);
+    ctx.fillRect(26,-15,6,10);
+
+    ctx.fillRect(-32,5,6,10);
+    ctx.fillRect(26,5,6,10);
+
+    // Faros delanteros
+    ctx.fillStyle="yellow";
+    ctx.fillRect(28,-8,3,5);
+    ctx.fillRect(28,3,3,5);
+
+    // Luces traseras
+    ctx.fillStyle="red";
+    ctx.fillRect(-31,-8,3,5);
+    ctx.fillRect(-31,3,3,5);
 
     ctx.restore();
 
